@@ -11,9 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
@@ -25,6 +23,40 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "fonts": [
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-Black.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-Bold.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-ExtraBold.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-ExtraLight.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-Light.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-Medium.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-Regular.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-SemiBold.ttf"
+        },
+        {
+          "asset": "assets/fonts/Lexend/static/Lexend-Thin.ttf"
+        },
+        {
+          "asset": "assets/fonts/SF-Pro-Display/SF-Pro-Display-Regular.otf"
+        }
+      ]
     }
   }
 }
