@@ -15,6 +15,8 @@ import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
 import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
+import C_StatusScreen from "../screens/CommunityScreens/C_StatusScreen";
+import C_StatusLikedListScreen from "../screens/CommunityScreens/C_StatusLikedListScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
@@ -43,6 +45,11 @@ function CommunityStackNavigator() {
   return (
     <CommunityStack.Navigator screenOptions={{ headerShown: false }}>
       <CommunityStack.Screen name="C_Home" component={C_HomeScreen} />
+      <CommunityStack.Screen name="C_Status" component={C_StatusScreen} />
+      <CommunityStack.Screen
+        name="C_StatusLikedList"
+        component={C_StatusLikedListScreen}
+      />
     </CommunityStack.Navigator>
   );
 }

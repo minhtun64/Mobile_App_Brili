@@ -7,6 +7,8 @@ import {
   Image,
   ImageBackground,
   ScrollView,
+  Animated,
+  Modal,
 } from "react-native";
 import React, {
   Component,
@@ -20,9 +22,11 @@ import * as Font from "expo-font";
 
 import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
+//import ImageModal from "../../components/ImageModal";
 
-export default function C_HomeScreen(navigation) {
+export default function C_HomeScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
+  const [iconStatus, setIconStatus] = useState(false);
 
   useEffect(() => {
     const loadFont = async () => {
@@ -44,12 +48,14 @@ export default function C_HomeScreen(navigation) {
     loadFont();
   }, []);
 
+  //Lưu ảnh
+
   if (!fontLoaded) {
     return null; // or a loading spinner
   }
 
   return (
-    <View style={styles.frame}>
+    <View style={styles.container}>
       {/* heading */}
       <View style={styles.heading}></View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -98,6 +104,89 @@ export default function C_HomeScreen(navigation) {
           </View>
 
           {/* NỘI DUNG MỘT STATUS */}
+          <TouchableOpacity
+            style={styles.status}
+            onPress={() => navigation.navigate("C_Status")}
+            // onPress={() => console.log("Button pressed")}
+          >
+            <View style={styles.row}>
+              <View style={styles.row2}>
+                <TouchableOpacity>
+                  {/* Ảnh đại diện người đăng */}
+                  <Image
+                    style={styles.avatar50}
+                    source={require("../../assets/images/avatar-1.png")}
+                  ></Image>
+                </TouchableOpacity>
+                <View>
+                  <TouchableOpacity>
+                    {/* Tên người đăng */}
+                    <Text style={styles.status_name}>Đặng Minh Tuấn</Text>
+                  </TouchableOpacity>
+                  {/* Thời gian đăng */}
+                  <Text style={styles.status_date}>4 giờ trước</Text>
+                </View>
+              </View>
+              <TouchableOpacity>
+                {/* Tùy chọn Status */}
+                <Image
+                  style={styles.status_option}
+                  source={require("../../assets/icons/option.png")}
+                ></Image>
+              </TouchableOpacity>
+            </View>
+
+            {/* Nội dung Status */}
+            <Text style={styles.status_content} selectable={true}>
+              Good morning!!! {"\u2764"}
+              {"\u2601"}
+            </Text>
+
+            {/* Ảnh / Video Status */}
+            <TouchableOpacity>
+              <Image
+                style={styles.status_image}
+                source={require("../../assets/images/status-1.png")}
+              />
+            </TouchableOpacity>
+
+            {/* Like / Comment / Share */}
+            <View style={styles.row}>
+              <View style={styles.row2}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIconStatus(!iconStatus);
+                  }}
+                >
+                  <Image
+                    style={styles.like}
+                    source={
+                      iconStatus
+                        ? require("../../assets/icons/liked.png")
+                        : require("../../assets/icons/like.png")
+                    }
+                  ></Image>
+                </TouchableOpacity>
+                <Text>12</Text>
+                <TouchableOpacity>
+                  <Image
+                    style={styles.comment}
+                    source={require("../../assets/icons/comment.png")}
+                  ></Image>
+                </TouchableOpacity>
+                <Text>3</Text>
+              </View>
+              <TouchableOpacity>
+                <Image
+                  style={styles.share}
+                  source={require("../../assets/icons/share.png")}
+                ></Image>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+          {/* NỘI DUNG MỘT STATUS */}
+
+          {/* NỘI DUNG MỘT STATUS */}
           <View style={styles.status}>
             <View style={styles.row}>
               <View style={styles.row2}>
@@ -127,15 +216,17 @@ export default function C_HomeScreen(navigation) {
             </View>
 
             {/* Nội dung Status */}
-            <Text style={styles.status_content}>
-              Good morning!!! {"\u2764"} {"\u2601"}
+            <Text style={styles.status_content} selectable={true}>
+              Good morning!!! {"\u{2764}"}
+              {"\u{2601}"}
             </Text>
+
+            {/* Ảnh / Video Status */}
             <TouchableOpacity>
-              {/* Ảnh / Video Status */}
               <Image
                 style={styles.status_image}
                 source={require("../../assets/images/status-1.png")}
-              ></Image>
+              />
             </TouchableOpacity>
 
             {/* Like / Comment / Share */}
@@ -164,8 +255,8 @@ export default function C_HomeScreen(navigation) {
               </TouchableOpacity>
             </View>
           </View>
-          {/* Nội dung một Post */}
-          <View style={styles.status}></View>
+          {/* NỘI DUNG MỘT STATUS */}
+
           <View style={styles.status}></View>
           <View style={styles.status}></View>
         </View>
@@ -175,9 +266,9 @@ export default function C_HomeScreen(navigation) {
 }
 
 const styles = StyleSheet.create({
-  frame: {
+  container: {
     width: "100%",
-    height: "100%",
+    height: "90%",
     backgroundColor: "#FFF6F6",
   },
   heading: {
@@ -267,7 +358,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 100,
+    //marginBottom: 100,
   },
   status: {
     backgroundColor: "white",
@@ -286,7 +377,8 @@ const styles = StyleSheet.create({
   status_option: {
     width: 28,
     height: 28,
-    marginRight: 20,
+    marginRight: 8,
+    marginTop: -16,
   },
   row3: {
     width: "100%",
@@ -321,7 +413,10 @@ const styles = StyleSheet.create({
   status_image: {
     width: 320,
     height: 180,
+    resizeMode: "contain",
+    alignSelf: "center",
     margin: 8,
+    //transform: [{ scale: this.state.scaleValue }],
   },
   like: {
     width: 22,

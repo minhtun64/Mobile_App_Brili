@@ -13,7 +13,34 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIUserInterfaceStyle": "Light",
+        "NSAllowsArbitraryLoads": true,
+        "NSAllowsArbitraryLoadsForMedia": true,
+        "NSAllowsArbitraryLoadsInWebContent": true,
+        "NSAllowsLocalNetworking": true,
+        "UIWebViewOptionAllowsInlineMediaPlayback": true,
+        "UIWebViewOptionSuppressesIncrementalRendering": true,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        },
+        "LSApplicationQueriesSchemes": [
+          "whatsapp",
+          "instagram",
+          "twitter",
+          "facebook",
+          "linkedin"
+        ],
+        "UIPasteboardOptions": {
+          "allowedPasteboardTypes": ["public.text"]
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
