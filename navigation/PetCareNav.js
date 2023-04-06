@@ -17,6 +17,7 @@ import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
 import C_StatusScreen from "../screens/CommunityScreens/C_StatusScreen";
 import C_StatusLikedListScreen from "../screens/CommunityScreens/C_StatusLikedListScreen";
+import C_StatusPostingScreen from "../screens/CommunityScreens/C_StatusPostingScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
@@ -49,6 +50,10 @@ function CommunityStackNavigator() {
       <CommunityStack.Screen
         name="C_StatusLikedList"
         component={C_StatusLikedListScreen}
+      />
+      <CommunityStack.Screen
+        name="C_StatusPosting"
+        component={C_StatusPostingScreen}
       />
     </CommunityStack.Navigator>
   );

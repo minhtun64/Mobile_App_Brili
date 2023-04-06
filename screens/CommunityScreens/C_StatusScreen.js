@@ -12,7 +12,12 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Keyboard,
+  Platform,
+  Dimensions,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { requestMediaLibraryPermissionsAsync } from "expo-image-picker";
+import Constants from "expo-constants";
 import React, {
   Component,
   useEffect,
@@ -24,6 +29,12 @@ import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
+import { AntDesign } from "@expo/vector-icons";
+// import EmojiBoard from "react-native-emoji-board";
+import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
+import { Permissions } from "expo-permissions";
+import * as FileSystem from "expo-file-system";
 
 export default function C_StatusScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -41,6 +52,11 @@ export default function C_StatusScreen({ navigation }) {
   const [value, setValue] = useState("");
   const [lineCount, setLineCount] = useState(1);
   const [height, setHeight] = useState(30);
+  // const [showEmojiBoard, setShowEmojiBoard] = useState(false);
+
+  // const toggleEmojiBoard = () => setShowEmojiBoard(!showEmojiBoard);
+
+  // const onEmojiSelected = (emoji) => setValue((prevValue) => prevValue + emoji);
 
   const handleContentSizeChange = (event) => {
     const { contentSize } = event.nativeEvent;
@@ -77,7 +93,75 @@ export default function C_StatusScreen({ navigation }) {
     loadFont();
   }, []);
 
-  //Lưu ảnh
+  const textInputRef = useRef(null);
+
+  const onPressInHandler = () => {
+    textInputRef.current.focus();
+  };
+
+  //Chọn ảnh
+  const [image, setImage] = useState(null);
+  const [isSelected, setIsSelected] = useState(false);
+
+  const pickImage = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setIsSelected(true);
+      setImage(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    setIsSelected(false);
+    setImage(null);
+  };
+  //Chọn ảnh
+
+  //Pop up ảnh
+  const [modalVisible, setModalVisible] = useState(false);
+
+  //Lưu / Chia sẻ ảnh
+  const [showOptions, setShowOptions] = useState(false);
+
+  const openOptions = () => setShowOptions(true);
+  const closeOptions = () => setShowOptions(false);
+
+  const SaveImage = async () => {
+    try {
+      // Request device storage access permission
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status === "granted") {
+        // Create asset object from local image file
+        const asset = await MediaLibrary.createAssetAsync(
+          require("../../assets/images/status-1.png")
+        );
+
+        // Save image to media library
+        await MediaLibrary.saveToLibraryAsync(asset.localUri);
+
+        console.log("Image successfully saved");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const ShareImage = async () => {
+    //
+  };
+  //Lưu/ Chia sẻ ảnh
 
   if (!fontLoaded) {
     return null; // or a loading spinner
@@ -151,12 +235,94 @@ export default function C_StatusScreen({ navigation }) {
             </Text>
 
             {/* Ảnh / Video Status */}
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
               <Image
                 style={styles.status_image}
                 source={require("../../assets/images/status-1.png")}
               />
             </TouchableOpacity>
+
+            <Modal
+              animationType="slide"
+              transparent={false}
+              visible={modalVisible}
+              onRequestClose={() => {
+                setModalVisible(false);
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                {/* Icon để đóng Modal */}
+                <TouchableOpacity
+                  style={{
+                    position: "absolute",
+                    top: 80,
+                    left: 20,
+                    zIndex: 1,
+                  }}
+                  onPress={() => {
+                    closeOptions();
+                    setModalVisible(false);
+                  }}
+                >
+                  <Image
+                    source={require("../../assets/icons/close.png")}
+                    style={{ width: 20, height: 20 }}
+                  />
+                </TouchableOpacity>
+
+                {/* Icon để hiển thị các tùy chọn khác */}
+                <TouchableOpacity
+                  style={{
+                    position: "absolute",
+                    top: 80,
+                    right: 20,
+                    zIndex: 1,
+                  }}
+                  onPress={openOptions}
+                >
+                  <Image
+                    source={require("../../assets/icons/dots.png")}
+                    style={{ width: 20, height: 20 }}
+                  />
+                </TouchableOpacity>
+
+                {/* Hình ảnh sẽ hiển thị trong Modal */}
+                <Image
+                  source={require("../../assets/images/status-1.png")}
+                  style={{
+                    width: Dimensions.get("window").width,
+                    height: "100%",
+                    marginTop: -40,
+                  }}
+                  resizeMode="contain"
+                />
+
+                {/* Bottom pop up */}
+                {showOptions && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: "3%",
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "#fff",
+                      height: 100,
+                      justifyContent: "space-around",
+                      alignItems: "center",
+                      borderTopWidth: 1,
+                      borderTopColor: "#ccc",
+                    }}
+                  >
+                    <TouchableOpacity onPress={SaveImage}>
+                      <Text style={{ fontSize: 16 }}>Lưu ảnh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={ShareImage}>
+                      <Text style={{ fontSize: 16 }}>Chia sẻ ảnh</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </Modal>
 
             {/* Like / Comment / Share */}
             <View style={styles.row}>
@@ -172,13 +338,13 @@ export default function C_StatusScreen({ navigation }) {
                 >
                   <Text style={styles.status_like_comment}>12 Lượt thích</Text>
                 </TouchableOpacity>
-                <TouchableOpacity>
+                <TouchableOpacity onPressIn={onPressInHandler}>
                   <Image
                     style={styles.comment}
                     source={require("../../assets/icons/comment.png")}
                   ></Image>
                 </TouchableOpacity>
-                <TouchableOpacity>
+                <TouchableOpacity onPressIn={onPressInHandler}>
                   <Text style={styles.status_like_comment}>3 Bình luận</Text>
                 </TouchableOpacity>
               </View>
@@ -209,7 +375,7 @@ export default function C_StatusScreen({ navigation }) {
                     </TouchableOpacity>
                     {/* Nội dung bình luận */}
                     <Text style={styles.comment_content} selectable={true}>
-                      Phènnnnnnnnnnnnnnnnnnnnnnn
+                      Phènnnnnnnnnnnnnnnnnnnnnnnnnnn
                     </Text>
                   </View>
                   <View style={styles.row5}>
@@ -308,20 +474,55 @@ export default function C_StatusScreen({ navigation }) {
             }
           >
             <View style={styles.row6}>
-              <TextInput
-                style={StyleSheet.flatten([
-                  styles.comment_textinput,
-                  { height: height },
-                ])}
-                placeholder="Viết bình luận của bạn..."
-                value={value}
-                onChangeText={setValue}
-                multiline={true}
-                onContentSizeChange={handleContentSizeChange}
-              ></TextInput>
+              <View style={{ width: "72%" }}>
+                <TextInput
+                  style={StyleSheet.flatten([
+                    styles.comment_textinput,
+                    { height: height },
+                  ])}
+                  placeholder="Viết bình luận của bạn..."
+                  value={value}
+                  onChangeText={setValue}
+                  multiline={true}
+                  onContentSizeChange={handleContentSizeChange}
+                  ref={textInputRef}
+                  onSubmitEditing={() => Keyboard.dismiss()}
+                >
+                  {/* {showEmojiBoard && (
+                    <EmojiBoard
+                      onEmojiSelected={onEmojiSelected}
+                      containerStyle={styles.emoji_board}
+                    />
+                  )} */}
+                </TextInput>
+                {isSelected && (
+                  <View
+                    style={{
+                      width: 160,
+                      height: 160,
+                      margin: 12,
+                    }}
+                  >
+                    <Image
+                      source={{ uri: image }}
+                      style={{
+                        width: 160,
+                        height: 160,
+                        borderRadius: 12,
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={removeImage}
+                      style={{ position: "absolute", top: 0, right: 0 }}
+                    >
+                      <AntDesign name="close" size={20} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
               <View style={styles.row2}>
                 {/* Icon Image */}
-                <TouchableOpacity>
+                <TouchableOpacity onPress={pickImage}>
                   <Image
                     style={styles.comment_media}
                     source={require("../../assets/icons/image.png")}
@@ -329,7 +530,9 @@ export default function C_StatusScreen({ navigation }) {
                 </TouchableOpacity>
 
                 {/* Icon Emoji */}
-                <TouchableOpacity>
+                <TouchableOpacity
+                // onPress={toggleEmojiBoard}
+                >
                   <Image
                     style={styles.comment_media}
                     source={require("../../assets/icons/emoji.png")}
@@ -464,6 +667,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
+    borderRadius: 12,
     //transform: [{ scale: this.state.scaleValue }],
   },
   status_like_comment: {
@@ -547,6 +751,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     //marginLeft: 8,
     marginRight: 8,
+    width: "92%",
     //marginBottom: 8,
   },
   comment_name_content: {
@@ -554,6 +759,7 @@ const styles = StyleSheet.create({
     padding: 4,
     paddingLeft: 8,
     borderRadius: 12,
+    width: "90%",
   },
   greyline: {
     backgroundColor: "#E4E3E3",
@@ -563,7 +769,7 @@ const styles = StyleSheet.create({
     //marginBottom: 12,
   },
   mycomment: {
-    position: "fixed",
+    position: "relative",
     bottom: 0,
     width: "100%",
     //flex: 1,
@@ -610,8 +816,9 @@ const styles = StyleSheet.create({
     //marginTop: 24,
   },
   comment_textinput: {
-    width: 200,
+    //width: "72%",
     fontSize: 16,
+    margin: 8,
     // backgroundColor: "black",
   },
 
