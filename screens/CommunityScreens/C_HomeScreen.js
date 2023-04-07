@@ -66,7 +66,7 @@ export default function C_HomeScreen({ navigation }) {
               source={require("../../assets/images/logo.png")}
               //resizeMode="contain"
             ></Image>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("C_Search")}>
               <Image
                 style={styles.search}
                 source={require("../../assets/icons/search.png")}
@@ -420,6 +420,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
+    borderRadius: 12,
     //transform: [{ scale: this.state.scaleValue }],
   },
   like: {

@@ -24,10 +24,13 @@ import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
-export default function C_StatusPostingScreen({ navigation }) {
+const Tab = createMaterialTopTabNavigator();
+
+export default function C_SearchResultScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
 
   const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
 
@@ -37,6 +40,38 @@ export default function C_StatusPostingScreen({ navigation }) {
 
   function onSwipeRight() {
     navigation.goBack();
+  }
+
+  function AllScreen() {
+    return (
+      <View style={styles.tabContainer}>
+        <Text>All Tab</Text>
+      </View>
+    );
+  }
+
+  function PostScreen() {
+    return (
+      <View style={styles.tabContainer}>
+        <Text>Post Tab</Text>
+      </View>
+    );
+  }
+
+  function UserScreen() {
+    return (
+      <View style={styles.tabContainer}>
+        <Text>User Tab</Text>
+      </View>
+    );
+  }
+
+  function ClinicScreen() {
+    return (
+      <View style={styles.tabContainer}>
+        <Text>Clinic Tab</Text>
+      </View>
+    );
   }
 
   useEffect(() => {
@@ -61,6 +96,37 @@ export default function C_StatusPostingScreen({ navigation }) {
 
   //Lưu ảnh
 
+  const handleSearch = () => {
+    // Handle search logic
+  };
+
+  const renderTabNavigator = () => {
+    if (!searchInput) {
+      return null;
+    }
+
+    return (
+      <Tab.Navigator
+        tabBarOptions={{
+          labelStyle: {
+            fontSize: 14,
+            fontFamily: "lexend-regular",
+          },
+          activeTintColor: "#8F1928",
+          inactiveTintColor: "#A5A5A5",
+          indicatorStyle: {
+            backgroundColor: "#8F1928",
+          },
+        }}
+      >
+        <Tab.Screen name="Tất cả" component={AllScreen} />
+        <Tab.Screen name="Bài viết" component={PostScreen} />
+        <Tab.Screen name="Người" component={UserScreen} />
+        <Tab.Screen name="Phòng khám" component={ClinicScreen} />
+      </Tab.Navigator>
+    );
+  };
+
   if (!fontLoaded) {
     return null; // or a loading spinner
   }
@@ -71,58 +137,27 @@ export default function C_StatusPostingScreen({ navigation }) {
       <View style={styles.heading}>
         <View style={styles.row}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.cancel}>Hủy</Text>
+            <Image
+              style={styles.back}
+              source={require("../../assets/icons/chevron-left.png")}
+            ></Image>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.post_button}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.post}>Đăng</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        <View style={styles.row3}>
-          {/* Ảnh đại diện người đăng */}
-          <Image
-            style={styles.avatar40}
-            source={require("../../assets/images/avatar-1.png")}
-          ></Image>
-          <View>
-            {/* Tên người đăng */}
-            <Text style={styles.account_name}>Đỗ Quỳnh Chi</Text>
-            {/* Thời gian đăng */}
-            <TouchableOpacity style={styles.set_public}>
-              <View style={styles.row2}>
-                <Text style={styles.public}>Công khai</Text>
-                <Image
-                  style={styles.arrow_down}
-                  source={require("../../assets/icons/arrow-down.png")}
-                ></Image>
-              </View>
-            </TouchableOpacity>
+          <View style={styles.search_box}>
+            <TextInput
+              style={styles.search_input}
+              placeholder="Tìm kiếm trên PetCare"
+              placeholderTextColor="#ffffff"
+              autoCapitalize="none"
+              returnKeyType="search"
+              value={searchInput}
+              //   onChangeText={(text) => setSearchInput(text)}
+              //   onSubmitEditing={handleSearch}
+              onSubmitEditing={(text) => setSearchInput(text)}
+            ></TextInput>
           </View>
         </View>
-        <TextInput
-          style={styles.status_input}
-          placeholder="Hôm nay tâm trạng thú cưng của bạn như thế nào?"
-          // value={value}
-          // onChangeText={setValue}
-          multiline={true}
-          // onContentSizeChange={handleContentSizeChange}
-          // ref={textInputRef}
-          // onSubmitEditing={() => Keyboard.dismiss()}
-        ></TextInput>
-        <Image
-          source={require("../../assets/images/background-posting-status.png")}
-          style={styles.background}
-        ></Image>
-      </ScrollView>
+      </View>
+      {renderTabNavigator()}
     </View>
   );
 }
@@ -152,10 +187,10 @@ const styles = StyleSheet.create({
     // backgroundColor: "black",
   },
   back: {
-    width: 34,
-    height: 30,
-    marginLeft: 12,
-    marginTop: 8,
+    width: 24,
+    height: 24,
+    marginLeft: 4,
+    // marginTop: 4,
   },
   row: {
     width: "100%",
@@ -189,63 +224,32 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginLeft: 16,
   },
-  cancel: {
-    fontSize: 16,
-    fontFamily: "lexend-light",
-  },
   post: {
     color: "#ffffff",
     fontSize: 14,
     fontFamily: "lexend-medium",
   },
-  post_button: {
+  search_box: {
     paddingTop: 8,
     paddingBottom: 8,
     paddingLeft: 16,
     paddingRight: 16,
-    backgroundColor: "#8F1928",
+    backgroundColor: "#FCAC9E",
     borderRadius: 12,
+    width: "90%",
     justifyContent: "center", // căn giữa theo chiều dọc
-    alignItems: "center", // căn giữa theo chiều ngang
+    // alignItems: "center", // căn giữa theo chiều ngang
   },
-  background: {
-    width: 300,
-    height: 300,
-    // position: "fixed",
-    // top: 0,
-    // left: 0,
-    // right: 0,
-    // bottom: 0,
-    // height: "100%",
-    marginLeft: "auto",
-    marginRight: "auto",
-    marginTop: "40%",
+  search_input: {
+    fontSize: 16,
+    fontFamily: "lexend-regular",
   },
   account_name: {
     fontSize: 16,
     color: "#8F1928",
     fontFamily: "lexend-semibold",
   },
-  set_public: {
-    padding: 4,
-    borderColor: "#8F1928",
-    borderRadius: 12,
-    borderStyle: "solid",
-    borderWidth: 1,
-    width: 86,
-  },
 
-  public: {
-    fontSize: 12,
-    color: "#8F1928",
-    fontFamily: "lexend-regular",
-  },
-  arrow_down: {
-    width: 12,
-    height: 12,
-    // marginRight: 8,
-    marginLeft: 8,
-  },
   status_input: {
     fontSize: 18,
     padding: 16,

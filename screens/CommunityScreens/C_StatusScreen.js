@@ -310,14 +310,14 @@ export default function C_StatusScreen({ navigation }) {
                       justifyContent: "space-around",
                       alignItems: "center",
                       borderTopWidth: 1,
-                      borderTopColor: "#ccc",
+                      borderTopColor: "#FCAC9E",
                     }}
                   >
                     <TouchableOpacity onPress={SaveImage}>
-                      <Text style={{ fontSize: 16 }}>Lưu ảnh</Text>
+                      <Text style={styles.image_option}>Lưu ảnh</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={ShareImage}>
-                      <Text style={{ fontSize: 16 }}>Chia sẻ ảnh</Text>
+                      <Text style={styles.image_option}>Chia sẻ ảnh</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -819,6 +819,7 @@ const styles = StyleSheet.create({
     //width: "72%",
     fontSize: 16,
     margin: 8,
+    fontFamily: "lexend-regular",
     // backgroundColor: "black",
   },
 
@@ -839,5 +840,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignItems: "center",
     // backgroundColor: "black",
+  },
+  image_option: {
+    fontSize: 16,
+    fontFamily: "lexend-regular",
+    color: "#A51A29",
   },
 });
