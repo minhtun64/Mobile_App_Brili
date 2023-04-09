@@ -12,6 +12,7 @@ import FirstPetInfoScreen from "../screens/FirstPetInfoScreen";
 import C_HomeScreen from "../screens/CommunityScreens/C_HomeScreen";
 import H_NoteScreen from "../screens/HealthScreens/H_NoteScreen";
 import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
+import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
 import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
@@ -60,6 +61,10 @@ const VeterinarianStack = createStackNavigator();
 function VeterinarianStackNavigator() {
   return (
     <VeterinarianStack.Navigator screenOptions={{ headerShown: false }}>
+      <VeterinarianStack.Screen
+        name="V_Origin"
+        component={V_OriginScreen}
+      />
       <VeterinarianStack.Screen
         name="V_Location"
         component={V_LocationScreen}
