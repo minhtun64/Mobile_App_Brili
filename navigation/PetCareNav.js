@@ -11,11 +11,11 @@ import FirstOwnerInfoScreen from "../screens/FirstOwnerInfoScreen";
 import FirstPetInfoScreen from "../screens/FirstPetInfoScreen";
 import C_HomeScreen from "../screens/CommunityScreens/C_HomeScreen";
 import H_NoteScreen from "../screens/HealthScreens/H_NoteScreen";
-import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
-import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
 import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
+import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
+import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
