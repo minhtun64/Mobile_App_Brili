@@ -40,10 +40,14 @@ if (!fontLoaded) {
 return (
   <View>
     <View style={styles.container}>
+      {/* banner */}
       <View style={styles.bannerContainer}>
         <Image style={styles.banner} source={require('../../assets/images/V_banner.png')}></Image>
       </View>
+
       <View style={styles.seperation}></View>
+
+      {/* appointment list */}
       <View style={styles.listAppointment}>
         <View style={styles.heading}>
           <Text style={styles.title}>Danh sách lịch hẹn</Text>
@@ -55,7 +59,8 @@ return (
           onPress={() => navigation.navigate("V_Location")}>
             <Image source={require('../../assets/icons/V_footprint.png')}></Image>
         </TouchableOpacity>
-      </View>    
+      </View>   
+
     </View>
   </View>
 );

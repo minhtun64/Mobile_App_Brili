@@ -16,6 +16,7 @@ import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
 import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
 import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
+import V_ListVetClinicScreen from "../screens/VeterinarianScreens/V_ListVetClinicScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
@@ -68,6 +69,10 @@ function VeterinarianStackNavigator() {
       <VeterinarianStack.Screen
         name="V_Location"
         component={V_LocationScreen}
+      />
+      <VeterinarianStack.Screen
+        name="V_ListVetClinic"
+        component={V_ListVetClinicScreen}
       />
     </VeterinarianStack.Navigator>
   );
