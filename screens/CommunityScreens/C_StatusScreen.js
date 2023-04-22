@@ -250,7 +250,15 @@ export default function C_StatusScreen({ navigation }) {
                 setModalVisible(false);
               }}
             >
-              <View style={{ flex: 1 }}>
+              <TouchableOpacity
+                activeOpacity={1}
+                style={{
+                  flex: 1,
+
+                  backgroundColor: showOptions ? "rgba(0,0,0,0.5)" : "white",
+                }}
+                onPress={closeOptions}
+              >
                 {/* Icon để đóng Modal */}
                 <TouchableOpacity
                   style={{
@@ -293,35 +301,38 @@ export default function C_StatusScreen({ navigation }) {
                     width: Dimensions.get("window").width,
                     height: "100%",
                     marginTop: -40,
+                    opacity: showOptions ? 0.5 : 1,
                   }}
                   resizeMode="contain"
                 />
-
-                {/* Bottom pop up */}
-                {showOptions && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      bottom: "3%",
-                      left: 0,
-                      right: 0,
-                      backgroundColor: "#fff",
-                      height: 100,
-                      justifyContent: "space-around",
-                      alignItems: "center",
-                      borderTopWidth: 1,
-                      borderTopColor: "#FCAC9E",
-                    }}
-                  >
-                    <TouchableOpacity onPress={SaveImage}>
-                      <Text style={styles.image_option}>Lưu ảnh</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={ShareImage}>
-                      <Text style={styles.image_option}>Chia sẻ ảnh</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
+              </TouchableOpacity>
+              {/* Bottom pop up */}
+              {showOptions && (
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "#FFF6F6",
+                    height: "16%",
+                    justifyContent: "space-around",
+                    alignItems: "center",
+                    borderTopWidth: 1,
+                    borderTopColor: "#FCAC9E",
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                    paddingBottom: 24,
+                  }}
+                >
+                  <TouchableOpacity onPress={SaveImage}>
+                    <Text style={styles.image_option}>Lưu ảnh</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={ShareImage}>
+                    <Text style={styles.image_option}>Chia sẻ ảnh</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </Modal>
 
             {/* Like / Comment / Share */}
@@ -360,7 +371,9 @@ export default function C_StatusScreen({ navigation }) {
             {/* BÌNH LUẬN*/}
             <View style={styles.row4}>
               <View style={styles.row5}>
-                <TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("C_Profile")}
+                >
                   {/* Ảnh đại diện người bình luận */}
                   <Image
                     style={styles.avatar40}
@@ -369,7 +382,9 @@ export default function C_StatusScreen({ navigation }) {
                 </TouchableOpacity>
                 <View>
                   <View style={styles.comment_name_content}>
-                    <TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("C_Profile")}
+                    >
                       {/* Tên người bình luận */}
                       <Text style={styles.comment_name}>Lê Hoàng Sơn</Text>
                     </TouchableOpacity>

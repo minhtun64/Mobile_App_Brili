@@ -32,6 +32,7 @@ export default function C_SearchScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSubmittedQuery, setHasSubmittedQuery] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
 
@@ -45,33 +46,53 @@ export default function C_SearchScreen({ navigation }) {
 
   function AllScreen() {
     return (
-      <View style={styles.tabContainer}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <Text>All Tab</Text>
-      </View>
+      </ScrollView>
     );
   }
 
   function PostScreen() {
     return (
-      <View style={styles.tabContainer}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <Text>Post Tab</Text>
-      </View>
+      </ScrollView>
     );
   }
 
   function UserScreen() {
     return (
-      <View style={styles.tabContainer}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <Text>User Tab</Text>
-      </View>
+      </ScrollView>
     );
   }
 
   function ClinicScreen() {
     return (
-      <View style={styles.tabContainer}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
         <Text>Clinic Tab</Text>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -135,18 +156,86 @@ export default function C_SearchScreen({ navigation }) {
               onSubmitEditing={handleSearchSubmit}
             ></TextInput>
           </View>
+          <TouchableOpacity onPress={() => setModalVisible(true)}>
+            <Image
+              style={styles.micro}
+              source={require("../../assets/icons/micro-active.png")}
+            ></Image>
+          </TouchableOpacity>
         </View>
       </View>
-      {hasSubmittedQuery && (
+
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}
+      >
+        <View>
+          {/* Icon để đóng Modal */}
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              top: 80,
+              left: 20,
+              zIndex: 1,
+            }}
+            onPress={() => {
+              setModalVisible(false);
+            }}
+          >
+            <Image
+              source={require("../../assets/icons/close.png")}
+              style={{ width: 20, height: 20 }}
+            />
+          </TouchableOpacity>
+
+          {/* Hình ảnh sẽ hiển thị trong Modal */}
+          <Image
+            source={require("../../assets/icons/micro-active-gif.gif")}
+            style={{
+              width: 100,
+              height: 100,
+              marginLeft: "auto",
+              marginRight: "auto",
+              marginTop: 320,
+            }}
+          />
+          <TouchableOpacity
+            style={styles.search_button}
+            onPress={() => {
+              setModalVisible(false);
+            }}
+          >
+            <View style={styles.row3}>
+              <Image
+                source={require("../../assets/icons/search-white.png")}
+                style={{
+                  width: 30,
+                  height: 30,
+                  // marginLeft: "auto",
+                  // marginRight: "auto",
+                  // marginTop: 320,
+                }}
+              />
+              <Text style={styles.search_button_text}>Tìm kiếm</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {hasSubmittedQuery ? (
         <Tab.Navigator
-          tabBarOptions={{
-            labelStyle: {
+          screenOptions={{
+            tabBarActiveTintColor: "#8F1928",
+            tabBarInactiveTintColor: "#A5A5A5",
+            tabBarLabelStyle: {
               fontSize: 14,
               fontFamily: "lexend-regular",
             },
-            activeTintColor: "#8F1928",
-            inactiveTintColor: "#A5A5A5",
-            indicatorStyle: {
+            tabBarIndicatorStyle: {
               backgroundColor: "#8F1928",
             },
           }}
@@ -156,6 +245,17 @@ export default function C_SearchScreen({ navigation }) {
           <Tab.Screen name="Người" component={UserScreen} />
           <Tab.Screen name="Phòng khám" component={ClinicScreen} />
         </Tab.Navigator>
+      ) : (
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          <Text style={styles.search_text}>
+            Thử tìm kiếm mọi người, chủ đề hoặc từ khóa
+          </Text>
+        </ScrollView>
       )}
     </View>
   );
@@ -191,6 +291,12 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     // marginTop: 4,
   },
+  micro: {
+    width: 32,
+    height: 32,
+    marginRight: 4,
+    // marginTop: 4,
+  },
   row: {
     width: "100%",
     flexDirection: "row",
@@ -213,8 +319,8 @@ const styles = StyleSheet.create({
   row3: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    paddingTop: 10,
-    paddingBottom: 4,
+    // paddingTop: 10,
+    // paddingBottom: 10,
     alignItems: "center",
   },
   avatar40: {
@@ -235,7 +341,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     backgroundColor: "#FCAC9E",
     borderRadius: 12,
-    width: "90%",
+    width: "76%",
     justifyContent: "center", // căn giữa theo chiều dọc
     // alignItems: "center", // căn giữa theo chiều ngang
   },
@@ -254,5 +360,31 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
     fontFamily: "lexend-regular",
+  },
+  search_text: {
+    fontSize: 14,
+    marginLeft: "auto",
+    marginRight: "auto",
+    marginTop: 24,
+    fontFamily: "lexend-regular",
+  },
+  search_button: {
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 16,
+    paddingRight: 16,
+    backgroundColor: "#F5817E",
+    borderRadius: 12,
+    width: "40%",
+    // height: 30,
+    marginTop: 200,
+    alignSelf: "center",
+    justifyContent: "center", // căn giữa theo chiều dọc
+    alignItems: "center", // căn giữa theo chiều ngang
+  },
+  search_button_text: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontFamily: "lexend-medium",
   },
 });

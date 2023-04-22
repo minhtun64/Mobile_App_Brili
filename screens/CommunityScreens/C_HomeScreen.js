@@ -367,11 +367,12 @@ const styles = StyleSheet.create({
   status: {
     backgroundColor: "white",
     width: "90%",
-    height: 352,
+    // height: 352,
     alignItems: "center",
     borderRadius: 12,
     marginTop: 12,
     marginBottom: 12,
+    paddingBottom: 8,
   },
   avatar50: {
     width: 50,
