@@ -37,6 +37,11 @@ export default function C_ProfileScreen({ navigation }) {
 
   const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
 
+  const [showPetInfo, setShowPetInfo] = useState(false);
+
+  const openPetInfo = () => setShowPetInfo(true);
+  const closePetInfo = () => setShowPetInfo(false);
+
   function onSwipeLeft() {
     //navigation.goBack();
   }
@@ -139,14 +144,16 @@ export default function C_ProfileScreen({ navigation }) {
           {/* Like / Comment / Share */}
           <View style={styles.row3}>
             <TouchableOpacity
-              onPress={() => navigation.navigate("C_StatusLikedList")}
+              onPress={() => navigation.navigate("C_FollowingList")}
             >
               <View style={styles.row3}>
                 <Text style={styles.following_count}>3.404</Text>
                 <Text style={styles.following_count_text}> Đang theo dõi</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("C_FollowedList")}
+            >
               <View style={styles.row3}>
                 <Text style={styles.followed_count}>422</Text>
                 <Text style={styles.followed_count_text}> Người theo dõi</Text>
@@ -162,6 +169,7 @@ export default function C_ProfileScreen({ navigation }) {
                 marginRight: 8,
                 marginLeft: 8,
               }}
+              onPress={() => setModalVisible(true)}
             >
               <Image
                 style={styles.pet_img}
@@ -198,6 +206,137 @@ export default function C_ProfileScreen({ navigation }) {
                 </Text>
               </View>
             </TouchableOpacity>
+
+            {/* Pop up */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={modalVisible}
+              onRequestClose={() => {
+                setModalVisible(false);
+              }}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPress={() => {
+                  setModalVisible(false);
+                }}
+              >
+                {/* Hình ảnh sẽ hiển thị trong Modal */}
+                <View
+                  style={{
+                    width: "100%",
+                    height: 300,
+                    backgroundColor: "#FFF6F6",
+                    marginTop: -40,
+                    borderRadius: 24,
+                  }}
+                >
+                  {/* Icon để đóng Modal */}
+                  <TouchableOpacity
+                    style={{
+                      position: "absolute",
+                      top: 28,
+                      right: 20,
+                      zIndex: 1,
+                    }}
+                    onPress={() => {
+                      closePetInfo();
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Image
+                      source={require("../../assets/icons/close-red.png")}
+                      style={{ width: 30, height: 30 }}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Icon Chuyển trái/phải */}
+                  <TouchableOpacity
+                    style={{
+                      position: "absolute",
+                      top: 150,
+                      left: 4,
+                      zIndex: 1,
+                    }}
+                    onPress={() => {
+                      closePetInfo();
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Image
+                      source={require("../../assets/icons/arrow-left.png")}
+                      style={{ width: 30, height: 30 }}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      position: "absolute",
+                      top: 150,
+                      right: 4,
+                      zIndex: 1,
+                    }}
+                    onPress={() => {
+                      closePetInfo();
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Image
+                      source={require("../../assets/icons/arrow-right.png")}
+                      style={{ width: 30, height: 30 }}
+                    />
+                  </TouchableOpacity>
+
+                  <View style={styles.row7}>
+                    <View
+                      style={{
+                        width: 220,
+                        height: 200,
+                        backgroundColor: "#ffffff",
+                        borderRadius: 12,
+                        marginRight: 16,
+                      }}
+                    >
+                      <Text style={styles.pet_name}>Bé Dâu</Text>
+                      <View style={styles.row3}>
+                        <Text style={styles.pet_pro}>Loài: </Text>
+                        <Text style={styles.pet_pro_val}>Hamster</Text>
+                      </View>
+                      <View style={styles.row3}>
+                        <Text style={styles.pet_pro}>Giống: </Text>
+                        <Text style={styles.pet_pro_val}>Winter White</Text>
+                      </View>
+                      <View style={styles.row3}>
+                        <Text style={styles.pet_pro}>Giới tính: </Text>
+                        <Text style={styles.pet_pro_val}>Cái</Text>
+                      </View>
+                      <View style={styles.row3}>
+                        <Text style={styles.pet_pro}>Tuổi: </Text>
+                        <Text style={styles.pet_pro_val}>1</Text>
+                      </View>
+                      <View style={styles.row3}>
+                        <Text style={styles.pet_pro}>Cân nặng: </Text>
+                        <Text style={styles.pet_pro_val}>0.3 kg</Text>
+                      </View>
+                      <View style={styles.row3}>
+                        <Text style={styles.pet_pro}>Màu lông: </Text>
+                        <Text style={styles.pet_pro_val}>Xám trắng</Text>
+                      </View>
+                    </View>
+                    <Image
+                      style={styles.pet_img}
+                      source={require("../../assets/images/pet-1-1.png")}
+                    ></Image>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Modal>
 
             <TouchableOpacity
               style={{
@@ -500,6 +639,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: -40,
   },
+  row7: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingTop: 10,
+    marginTop: 60,
+    alignItems: "center",
+  },
   avatar40: {
     width: 40,
     height: 40,
@@ -603,6 +749,27 @@ const styles = StyleSheet.create({
     height: 134,
     width: 100,
     borderRadius: 12,
+  },
+  pet_name: {
+    fontSize: 18,
+    color: "#F5817E",
+    fontFamily: "lexend-medium",
+    alignSelf: "center",
+    // marginLeft: "6%",
+  },
+  pet_pro: {
+    // fontSize: 18,
+    // color: "#F5817E",
+    fontFamily: "lexend-medium",
+    // alignSelf: "center",
+    marginLeft: 12,
+  },
+  pet_pro_val: {
+    // fontSize: 18,
+    // color: "#F5817E",
+    fontFamily: "lexend-light",
+    // alignSelf: "center",
+    // marginLeft: "6%",
   },
   text: {
     fontSize: 18,

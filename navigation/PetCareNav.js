@@ -20,6 +20,8 @@ import C_StatusLikedListScreen from "../screens/CommunityScreens/C_StatusLikedLi
 import C_StatusPostingScreen from "../screens/CommunityScreens/C_StatusPostingScreen";
 import C_SearchScreen from "../screens/CommunityScreens/C_SearchScreen";
 import C_ProfileScreen from "../screens/CommunityScreens/C_ProfileScreen";
+import C_FollowingListScreen from "../screens/CommunityScreens/C_FollowingListScreen";
+import C_FollowedListScreen from "../screens/CommunityScreens/C_FollowedListScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
@@ -59,6 +61,15 @@ function CommunityStackNavigator() {
       />
       <CommunityStack.Screen name="C_Search" component={C_SearchScreen} />
       <CommunityStack.Screen name="C_Profile" component={C_ProfileScreen} />
+
+      <CommunityStack.Screen
+        name="C_FollowingList"
+        component={C_FollowingListScreen}
+      />
+      <CommunityStack.Screen
+        name="C_FollowedList"
+        component={C_FollowedListScreen}
+      />
     </CommunityStack.Navigator>
   );
 }
