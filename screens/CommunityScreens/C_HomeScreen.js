@@ -66,7 +66,7 @@ export default function C_HomeScreen({ navigation }) {
               source={require("../../assets/images/logo.png")}
               //resizeMode="contain"
             ></Image>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("C_Search")}>
               <Image
                 style={styles.search}
                 source={require("../../assets/icons/search.png")}
@@ -80,7 +80,9 @@ export default function C_HomeScreen({ navigation }) {
                 source={require("../../assets/images/myavatar.png")}
               ></Image>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("C_StatusPosting")}
+            >
               <ShakeBackgroundImage
                 style={styles.frame_post}
                 source={require("../../assets/images/frame-post.png")}
@@ -168,7 +170,9 @@ export default function C_HomeScreen({ navigation }) {
                   ></Image>
                 </TouchableOpacity>
                 <Text>12</Text>
-                <TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("C_Status")}
+                >
                   <Image
                     style={styles.comment}
                     source={require("../../assets/icons/comment.png")}
@@ -363,11 +367,12 @@ const styles = StyleSheet.create({
   status: {
     backgroundColor: "white",
     width: "90%",
-    height: 352,
+    // height: 352,
     alignItems: "center",
     borderRadius: 12,
     marginTop: 12,
     marginBottom: 12,
+    paddingBottom: 8,
   },
   avatar50: {
     width: 50,
@@ -416,6 +421,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
+    borderRadius: 12,
     //transform: [{ scale: this.state.scaleValue }],
   },
   like: {
