@@ -11,6 +11,7 @@ import FirstOwnerInfoScreen from "../screens/FirstOwnerInfoScreen";
 import FirstPetInfoScreen from "../screens/FirstPetInfoScreen";
 import C_HomeScreen from "../screens/CommunityScreens/C_HomeScreen";
 import H_NoteScreen from "../screens/HealthScreens/H_NoteScreen";
+import H_DetailNote from "../screens/HealthScreens/H_DetailNote";
 import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
 import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
@@ -59,7 +60,9 @@ function HealthStackNavigator() {
   return (
     <HealthStack.Navigator screenOptions={{ headerShown: false }}>
       <HealthStack.Screen name="H_Note" component={H_NoteScreen} />
+      <HealthStack.Screen name="H_DetailNote" component={H_DetailNote} />
     </HealthStack.Navigator>
+    
   );
 }
 
@@ -287,7 +290,7 @@ function MyTabs() {
   );
 }
 
-export default MainNavigator;
+export default MainNavigator; 
 
 const styles = StyleSheet.create({
   tabIcon: {
