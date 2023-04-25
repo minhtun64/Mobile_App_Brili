@@ -8,6 +8,7 @@
     View,
     Image,
     ImageBackground,
+    TextInput,
   } from "react-native";
   import * as Font from "expo-font";
   import {LocaleConfig} from 'react-native-calendars';
@@ -84,8 +85,8 @@
             <TouchableOpacity onPress={() => setstatebtn(NOTEBOOK)} style={[styles.OptionTab, gender == NOTEBOOK ? styles.GenderActive : null]}>
               <Text style={styles.TextOptionTab}>Sổ tay</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setstatebtn(HANDBOOK)} style={[styles.OptionTab, gender == HANDBOOK ? styles.GenderActive : null]}>
-              <Text style={styles.TextOptionTab}>Cẩm Nang</Text>
+            <TouchableOpacity onPress={() =>navigation.navigate("H_HandBook")} style={styles.noneOptionTab}>
+              <Text style={styles.noneActive}>Cẩm Nang</Text>
             </TouchableOpacity>
             
           </View>
@@ -126,7 +127,7 @@
                   <Text style={styles.taskTime}>
                     10:30
                   </Text>
-                  <TouchableOpacity onPress={() => navigation.navigate("C_StatusLikedList")}>
+                  <TouchableOpacity onPress={() => navigation.navigate("H_UpdateNote")}>
                     <Image
                       style={styles.taskEditIcon}
                       source={require("../../assets/icons/editIcon.png")}
@@ -234,7 +235,7 @@
                 </View>
               </View>
             </ScrollView>    
-            <TouchableOpacity style={styles.containerAddBtn}>
+            <TouchableOpacity style={styles.containerAddBtn} onPress={() => navigation.navigate("H_AddNote")}>
               <Image
                 style={styles.addButton}
                 source={require("../../assets/icons/addNewHandBook.png")}
@@ -248,7 +249,6 @@
         {showCalendar && (
             <View style={styles.popUpCalendar}>
                 <Calendar style={{ borderRadius: 10 }}
-                  dayNamesShort={['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']}
                   onDayPress={handleDayPress}
                   current={selectedDate || undefined}
                   hideExtraDays={true}
@@ -265,6 +265,8 @@
                 </View> 
               )}
         
+        {/* jkdashaskdhakdhasjkd */}
+
       </View>
     );
   }
@@ -302,17 +304,35 @@
     justifyContent: 'center',
     flexDirection: 'row' ,
     height: '6%',
-    width: '45%',
+    width: '80%',
     marginTop:'18%',
-    backgroundColor:'#FFFFFF',
+    paddingRight:'14%',
+    paddingLeft:'14%',
+    backgroundColor:'#ffffff',
+    borderRadius: 20,
     },
     OptionTab:{
       borderRadius: 20,
       backgroundColor:'#FDDAD4',
       height:'100%',
-      width: '100%',
+      width: '80%',
       textAlign:"center",
       justifyContent:"center"
+    },
+    noneOptionTab:{
+      borderRadius: 20,
+      backgroundColor:'#ffffff',
+      height:'100%',
+      width: '80%',
+      textAlign:"center",
+      justifyContent:"center"
+    },
+    noneActive:{
+      fontFamily: "lexend-medium",
+      fontSize:18,
+      fontWeight:'bold',
+      color:'rgba(165, 26, 41, 0.3)',
+      textAlign:"center"
     },
     TextOptionTab:{
       fontFamily: "lexend-medium",
