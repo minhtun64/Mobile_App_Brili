@@ -61,7 +61,7 @@ export default function V_ListVetClinicScreen({ navigation }) {
         <Text style={styles.titleText}>Các phòng khám ở gần bạn</Text>
       </View>
       <ScrollView style={styles.listClinicCard}>
-        {clinicArr.map(item => <ClinicCard key={item.id} {...item} />)}
+        {clinicArr.map(item => <ClinicCard key={item.id} {...item} navigation={navigation} />)}
       </ScrollView>
     </View>
   );
@@ -109,7 +109,7 @@ const ClinicCard = (prop) => {
           {/* booking vet button */}
           <TouchableOpacity
             style={[styles.bookingBtn, styles.row]}
-            onPress={() => navigation.navigate("V_BookingVet")}>
+            onPress={() => prop.navigation.navigate("V_BookingVet")}>
             <Text style={styles.textBookingBtn}>Đặt lịch khám</Text>
           </TouchableOpacity>
         </View>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    marginTop: '1%',
+    marginTop: '2%',
   },
   backBtn: {
     position: 'absolute',
