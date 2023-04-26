@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     fontFamily: 'lexend-semibold',
   },
   addressClinic: {
-    maxWidth: '88%',
+    maxWidth: '78%',
     fontSize: 14,
     fontFamily: 'lexend-light',
   },
