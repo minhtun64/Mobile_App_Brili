@@ -19,6 +19,7 @@ import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
 import V_ListVetClinicScreen from "../screens/VeterinarianScreens/V_ListVetClinicScreen";
 import V_BookingVetScreen from "../screens/VeterinarianScreens/V_BookingVetScreen";
 import V_BookingSuccessScreen from "../screens/VeterinarianScreens/V_BookingSuccessScreen";
+import V_ListAppointmentScreen from "../screens/VeterinarianScreens/V_ListAppointmentScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
@@ -83,6 +84,10 @@ function VeterinarianStackNavigator() {
       <VeterinarianStack.Screen
         name="V_BookingSuccess"
         component={V_BookingSuccessScreen}
+      />
+      <VeterinarianStack.Screen
+        name="V_ListAppointment"
+        component={V_ListAppointmentScreen}
       />
     </VeterinarianStack.Navigator>
   );
