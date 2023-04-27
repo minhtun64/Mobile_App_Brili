@@ -2,10 +2,9 @@
 // https://aboutreact.com/example-of-searchable-dropdown-picker-in-react-native/
 
 import React, { useState, useEffect } from 'react';
-import {     
+import {
   Text,
   StyleSheet,
-  ImageBackground,
   View,
   Image,
   SafeAreaView,
@@ -15,7 +14,6 @@ import {
 import * as Font from "expo-font";
 import SearchableDropdown from 'react-native-searchable-dropdown';
 import axios from 'axios';
-import { set } from 'react-hook-form';
 
 export default function V_LocationScreen({ navigation }) {
   //Data Source for the SearchableDropdown
@@ -27,7 +25,7 @@ export default function V_LocationScreen({ navigation }) {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [wards, setWards] = useState([]);
   const [selectedWard, setSelectedWard] = useState('');
-
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const onLayout = (event) => {
@@ -36,7 +34,7 @@ export default function V_LocationScreen({ navigation }) {
   };
 
   const { width, height } = layout;
-  const halfWidth = height;
+  const halfHeight = height * 1.5;
 
   useEffect(() => {
     axios.get(`${apiUrl}`)
@@ -74,31 +72,19 @@ export default function V_LocationScreen({ navigation }) {
 
   return (
     <View style={styles.wrapping}>
-      <View style={styles.header}>
+      <View style={[styles.header, styles.row]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Image
             style={styles.backIcon}
             source={require("../../assets/icons/V_backIconMain.png")}
           ></Image>
         </TouchableOpacity>
-        <View style={styles.headerTitle}>
+        <View style={[styles.headerTitle, styles.row]}>
           <Text style={styles.headerText}>Đặt lịch hẹn</Text>
           <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image>
         </View>
       </View>
-      
-      <Image 
-        style={{ 
-          width: halfWidth, 
-          height: '28%',        
-          position: 'absolute',
-          top: '8%',
-          resizeMode: 'cover',
-          alignSelf: 'center',
-          }} 
-          source={require('../../assets/images/V_bookingVet.png')}
-          onLayout={onLayout}>
-      </Image>
+
 
       <SafeAreaView style={styles.container}>
         <Text style={styles.headingModal}>Chọn vị trí của bạn</Text>
@@ -107,9 +93,11 @@ export default function V_LocationScreen({ navigation }) {
             Tỉnh/Thành phố:
           </Text>
           <SearchableDropdown
+            keyboardDismissMode="interactive"
+            onTextChange={(text) => console.log(text)}
             //On text change listner on the searchable input
             onItemSelect={(item) => {
-              setSelectedProvince(item.name);
+              setSelectedProvince(item.name)
               setDistricts(item.districts)
             }}
             selectedItems={selectedProvince}
@@ -118,8 +106,8 @@ export default function V_LocationScreen({ navigation }) {
             //suggestion container style
             textInputStyle={{
               //inserted text style
-              height: 48,
-              width: '80%',
+              height: 44,
+              width: '84%',
               alignSelf: 'center',
               padding: 12,
               borderWidth: 1,
@@ -129,16 +117,18 @@ export default function V_LocationScreen({ navigation }) {
             }}
             itemStyle={{
               //single dropdown item style
-              width: '80%',
+              width: '84%',
               padding: 10,
               marginTop: 2,
               alignSelf: 'center',
               backgroundColor: '#FAF9F8',
               borderColor: '#bbb',
               borderWidth: 1,
+              borderRadius: 5,
             }}
             itemTextStyle={{
               //text style of a single dropdown item
+              fontSize: 13,
               color: '#222',
             }}
             itemsContainerStyle={{
@@ -159,10 +149,9 @@ export default function V_LocationScreen({ navigation }) {
             resetValue={false}
             //reset textInput Value with true and false state
             underlineColorAndroid="transparent"
-            //To remove the underline from the android input
+          //To remove the underline from the android input
           />
         </View>
-
 
         {/*
           Quận/Huyện dropdown
@@ -172,6 +161,8 @@ export default function V_LocationScreen({ navigation }) {
             Quận/Huyện:
           </Text>
           <SearchableDropdown
+            keyboardDismissMode="interactive"
+            onTextChange={(item) => console.log(item)}
             //On text change listner on the searchable input
             onItemSelect={(item) => {
               setSelectedDistrict(item.name)
@@ -183,8 +174,8 @@ export default function V_LocationScreen({ navigation }) {
             //suggestion container style
             textInputStyle={{
               //inserted text style
-              height: 48,
-              width: '80%',
+              height: 44,
+              width: '84%',
               alignSelf: 'center',
               padding: 12,
               borderWidth: 1,
@@ -194,7 +185,7 @@ export default function V_LocationScreen({ navigation }) {
             }}
             itemStyle={{
               //single dropdown item style
-              width: '80%',
+              width: '84%',
               padding: 10,
               marginTop: 2,
               alignSelf: 'center',
@@ -204,13 +195,14 @@ export default function V_LocationScreen({ navigation }) {
             }}
             itemTextStyle={{
               //text style of a single dropdown item
+              fontSize: 13,
               color: '#222',
             }}
             itemsContainerStyle={{
               //items container style you can pass maxHeight
               //to restrict the items dropdown hieght
-              maxHeight: '30%',
-            }}                  
+              maxHeight: '60%',
+            }}
             items={districts.map((district, index) => ({
               id: district.Id,
               name: district.Name,
@@ -229,7 +221,6 @@ export default function V_LocationScreen({ navigation }) {
           />
         </View>
 
-
         {/*
           Phường/Xã dropdown 
           */}
@@ -238,18 +229,21 @@ export default function V_LocationScreen({ navigation }) {
             Phường/Xã:
           </Text>
           <SearchableDropdown
+            onTextChange={(item) => console.log(item)}
             //On text change listner on the searchable input
-            onItemSelect={(item) => 
-              setSelectedWard(item.name)
-            }
+            onItemSelect={(item) => {
+              setSelectedWard(item.name)  
+              if (selectedProvince !== null && selectedDistrict !== null && selectedWard !== null) 
+                setIsButtonDisabled(false);
+            }}
             selectedItems={selectedWard}
             //onItemSelect called after the selection from the dropdown
             containerStyle={{ padding: 5 }}
             //suggestion container style
             textInputStyle={{
               //inserted text style
-              height: 48,
-              width: '80%',
+              height: 44,
+              width: '84%',
               alignSelf: 'center',
               padding: 12,
               borderWidth: 1,
@@ -259,7 +253,7 @@ export default function V_LocationScreen({ navigation }) {
             }}
             itemStyle={{
               //single dropdown item style
-              width: '80%',
+              width: '84%',
               padding: 10,
               marginTop: 2,
               alignSelf: 'center',
@@ -269,6 +263,7 @@ export default function V_LocationScreen({ navigation }) {
             }}
             itemTextStyle={{
               //text style of a single dropdown item
+              fontSize: 13,
               color: '#222',
             }}
             itemsContainerStyle={{
@@ -288,93 +283,117 @@ export default function V_LocationScreen({ navigation }) {
             resetValue={false}
             //reset textInput Value with true and false state
             underlineColorAndroid="transparent"
-            //To remove the underline from the android input
+          //To remove the underline from the android input
           />
         </View>
-        <TouchableOpacity 
+      </SafeAreaView>
+      <Image
+        style={{
+          width: halfHeight,
+          height: '28%',
+          resizeMode: 'cover',
+          alignSelf: 'center',
+          marginTop: 'auto',
+          marginBottom: 'auto',
+        }}
+        source={require('../../assets/images/V_bookingVet.png')}
+        onLayout={onLayout}>
+      </Image>
+      <TouchableOpacity
         style={styles.submitBtn}
+        disabled={isButtonDisabled}
         onPress={() => navigation.navigate("V_ListVetClinic")}
-        >
-          <Text style={styles.textBtn}>Tìm phòng khám</Text>
-        </TouchableOpacity>
-      </SafeAreaView>      
+      >
+        <Text style={styles.textBtn}>Tìm phòng khám</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrapping: {
-    height: '100%',
-    backgroundColor: '#FFF6F6',
+    height: Dimensions.get("window").height * 0.95,
+    backgroundColor: '#FFFFFF',
   },
-  header:{
-    width: '100%',
+  row: {
     flexDirection: 'row',
-    alignContent: 'space-between',
   },
-  backBtn: {    
-    left: 8,
+  header: {
+    width: '100%',
+    marginTop: '2%',
+  },
+  backBtn: {
     position: 'absolute',
+    left: 8,
     resizeMode: 'contain',
     marginTop: 32,
     marginLeft: 12,
   },
+  title: {
+    backgroundColor: '#FFF6F6',
+    paddingVertical: 12,
+  },
+  titleImg: {
+    width: 28,
+    height: 28,
+    marginLeft: 24,
+    marginRight: 4,
+  },
+  titleText: {
+    width: '72%',
+    fontSize: 15,
+    fontFamily: 'lexend-semibold',
+    color: '#FFFFFF',
+    backgroundColor: '#F5817E',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingLeft: 8,
+  },
   headerTitle: {
     width: '100%',
-    flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 8,
   },
   headerText: {
     color: '#A51A29',
-    fontSize: 18,
+    fontSize: 16,
     verticalAlign: 'middle',
     fontFamily: 'lexend-bold',
   },
   headerImg: {
-    width: '8%',
+    width: '6%',
     marginLeft: 6,
     resizeMode: 'contain',
   },
-  // bookingImg: {
-  //   width: '48%',
-  //   height: '26%',
-  //   position: 'absolute',
-  //   top: '8%',
-  //   resizeMode: 'cover',
-  //   alignSelf: 'center',
-  // },
   container: {
-    width: '100%',
-    height: '54%',
-    position: 'absolute',
-    bottom: Dimensions.get("window").height * 0.1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,        
-  },
-  headingModal:{
+    width: '90%',
     alignSelf: 'center',
-    color: '#A51A29',
-    fontSize: 16,
-    fontFamily: 'lexend-semibold',
-    marginTop: 12,
+    backgroundColor: '#FFF6F6',
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderRadius: 36,
+    borderWidth: 0.5,
+    borderColor: '#F5817E',
+  },
+  headingModal: {
+    fontSize: 18,
+    fontFamily: 'lexend-medium',
+    marginLeft: 20,
+    marginBottom: 2,
   },
   addressLabel: {
-    marginLeft:  24,
-    marginTop: 12,
-    marginBottom: 4,
+    marginLeft: 24,
+    marginTop: 6,
     fontSize: 13,
     fontFamily: 'lexend-semibold',
   },
   submitBtn: {
-   width: '80%',
-   borderRadius: 8,   
-   padding: 12,
-   marginTop: '4%',
-   marginBottom: 12,
-   alignSelf: 'center',
-   backgroundColor: '#A51A29',
+    width: '80%',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: Dimensions.get("window").height * 0.05 + 16,
+    alignSelf: 'center',
+    backgroundColor: '#A51A29',
   },
   textBtn: {
     fontSize: 16,
@@ -383,3 +402,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   }
 });
+
+
