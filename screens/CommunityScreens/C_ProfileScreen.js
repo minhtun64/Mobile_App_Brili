@@ -209,7 +209,7 @@ export default function C_ProfileScreen({ navigation }) {
 
             {/* Pop up */}
             <Modal
-              animationType="slide"
+              // animationType="slide"
               transparent={true}
               visible={modalVisible}
               onRequestClose={() => {
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     width: "100%",
-    height: "14%",
+    height: "12%",
     // backgroundColor: "red",
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
