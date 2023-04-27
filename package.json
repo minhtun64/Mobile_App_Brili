@@ -24,6 +24,7 @@
     "expo-permissions": "^14.1.1",
     "expo-sharing": "^11.2.2",
     "expo-status-bar": "~1.4.4",
+    "firebase": "^9.20.0",
     "react": "18.2.0",
     "react-native": "0.71.3",
     "react-native-document-picker": "^8.2.0",

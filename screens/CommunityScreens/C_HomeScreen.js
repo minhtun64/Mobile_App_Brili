@@ -20,13 +20,48 @@ import React, {
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import * as Font from "expo-font";
 
+import { database } from "../../firebase";
+import { ref, get } from "firebase/database";
+import getStatusInfo from "../../firebase_functions/getStatusInfo";
+
 import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
-//import ImageModal from "../../components/ImageModal";
 
 export default function C_HomeScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [iconStatus, setIconStatus] = useState(false);
+
+  const [recentPosts, setRecentPosts] = useState([]);
+
+  useEffect(() => {
+    const fetchRecentPosts = async () => {
+      try {
+        // Lấy danh sách 20 bài đăng mới nhất từ Firebase
+        const postsRef = ref(database, "post");
+        const postsSnapshot = await get(postsRef);
+        const postsData = postsSnapshot.val();
+
+        // Tạo mảng chứa các promise của hàm getStatusInfo cho mỗi bài đăng
+        const statusPromises = [];
+
+        // Lặp qua danh sách bài đăng và gọi hàm getStatusInfo cho mỗi bài đăng
+        for (const postId in postsData) {
+          const statusPromise = getStatusInfo(postId);
+          statusPromises.push(statusPromise);
+        }
+
+        // Chờ tất cả các promise hoàn thành và lấy kết quả
+        const statusResults = await Promise.all(statusPromises);
+
+        // Cập nhật state recentPosts với danh sách các bài đăng đã lấy được
+        setRecentPosts(statusResults);
+      } catch (error) {
+        console.error("Error retrieving recent posts:", error);
+      }
+    };
+
+    fetchRecentPosts();
+  }, []);
 
   useEffect(() => {
     const loadFont = async () => {
@@ -105,164 +140,91 @@ export default function C_HomeScreen({ navigation }) {
             ></Image>
           </View>
 
-          {/* NỘI DUNG MỘT STATUS */}
-          <TouchableOpacity
-            style={styles.status}
-            onPress={() => navigation.navigate("C_Status")}
-            // onPress={() => console.log("Button pressed")}
-          >
-            <View style={styles.row}>
-              <View style={styles.row2}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người đăng */}
-                  <Image
-                    style={styles.avatar50}
-                    source={require("../../assets/images/avatar-1.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
+          {recentPosts.map((post) => (
+            <TouchableOpacity
+              style={styles.status}
+              key={post.postId}
+              onPress={() =>
+                navigation.navigate("C_Status", { postId: post.postId })
+              }
+            >
+              <View style={styles.row}>
+                <View style={styles.row2}>
                   <TouchableOpacity>
-                    {/* Tên người đăng */}
-                    <Text style={styles.status_name}>Đặng Minh Tuấn</Text>
+                    {/* Ảnh đại diện người đăng */}
+                    <Image
+                      style={styles.avatar50}
+                      source={{ uri: post.userAvatar }}
+                    ></Image>
                   </TouchableOpacity>
-                  {/* Thời gian đăng */}
-                  <Text style={styles.status_date}>4 giờ trước</Text>
+                  <View>
+                    <TouchableOpacity>
+                      {/* Tên người đăng */}
+                      <Text style={styles.status_name}>{post.userName}</Text>
+                    </TouchableOpacity>
+                    {/* Thời gian đăng */}
+                    <Text style={styles.status_date}>{post.date}</Text>
+                  </View>
                 </View>
-              </View>
-              <TouchableOpacity>
-                {/* Tùy chọn Status */}
-                <Image
-                  style={styles.status_option}
-                  source={require("../../assets/icons/option.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-
-            {/* Nội dung Status */}
-            <Text style={styles.status_content} selectable={true}>
-              Good morning!!! {"\u2764"}
-              {"\u2601"}
-            </Text>
-
-            {/* Ảnh / Video Status */}
-            <TouchableOpacity>
-              <Image
-                style={styles.status_image}
-                source={require("../../assets/images/status-1.png")}
-              />
-            </TouchableOpacity>
-
-            {/* Like / Comment / Share */}
-            <View style={styles.row}>
-              <View style={styles.row2}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setIconStatus(!iconStatus);
-                  }}
-                >
-                  <Image
-                    style={styles.like}
-                    source={
-                      iconStatus
-                        ? require("../../assets/icons/liked.png")
-                        : require("../../assets/icons/like.png")
-                    }
-                  ></Image>
-                </TouchableOpacity>
-                <Text>12</Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("C_Status")}
-                >
-                  <Image
-                    style={styles.comment}
-                    source={require("../../assets/icons/comment.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <Text>3</Text>
-              </View>
-              <TouchableOpacity>
-                <Image
-                  style={styles.share}
-                  source={require("../../assets/icons/share.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-          {/* NỘI DUNG MỘT STATUS */}
-
-          {/* NỘI DUNG MỘT STATUS */}
-          <View style={styles.status}>
-            <View style={styles.row}>
-              <View style={styles.row2}>
                 <TouchableOpacity>
-                  {/* Ảnh đại diện người đăng */}
+                  {/* Tùy chọn Status */}
                   <Image
-                    style={styles.avatar50}
-                    source={require("../../assets/images/avatar-1.png")}
+                    style={styles.status_option}
+                    source={require("../../assets/icons/option.png")}
                   ></Image>
                 </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người đăng */}
-                    <Text style={styles.status_name}>Đặng Minh Tuấn</Text>
+              </View>
+
+              {/* Nội dung Status */}
+              <Text style={styles.status_content} selectable={true}>
+                {post.content}
+              </Text>
+
+              {/* Ảnh / Video Status */}
+              <TouchableOpacity>
+                <Image
+                  style={styles.status_image}
+                  source={{ uri: post.image }}
+                />
+              </TouchableOpacity>
+
+              {/* Like / Comment / Share */}
+              <View style={styles.row}>
+                <View style={styles.row2}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIconStatus(!iconStatus);
+                    }}
+                  >
+                    <Image
+                      style={styles.like}
+                      source={
+                        iconStatus
+                          ? require("../../assets/icons/liked.png")
+                          : require("../../assets/icons/like.png")
+                      }
+                    ></Image>
                   </TouchableOpacity>
-                  {/* Thời gian đăng */}
-                  <Text style={styles.status_date}>4 giờ trước</Text>
+                  <Text>12</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("C_Status")}
+                  >
+                    <Image
+                      style={styles.comment}
+                      source={require("../../assets/icons/comment.png")}
+                    ></Image>
+                  </TouchableOpacity>
+                  <Text>3</Text>
                 </View>
+                <TouchableOpacity>
+                  <Image
+                    style={styles.share}
+                    source={require("../../assets/icons/share.png")}
+                  ></Image>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity>
-                {/* Tùy chọn Status */}
-                <Image
-                  style={styles.status_option}
-                  source={require("../../assets/icons/option.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-
-            {/* Nội dung Status */}
-            <Text style={styles.status_content} selectable={true}>
-              Good morning!!! {"\u{2764}"}
-              {"\u{2601}"}
-            </Text>
-
-            {/* Ảnh / Video Status */}
-            <TouchableOpacity>
-              <Image
-                style={styles.status_image}
-                source={require("../../assets/images/status-1.png")}
-              />
             </TouchableOpacity>
-
-            {/* Like / Comment / Share */}
-            <View style={styles.row}>
-              <View style={styles.row2}>
-                <TouchableOpacity>
-                  <Image
-                    style={styles.like}
-                    source={require("../../assets/icons/like.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <Text>12</Text>
-                <TouchableOpacity>
-                  <Image
-                    style={styles.comment}
-                    source={require("../../assets/icons/comment.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <Text>3</Text>
-              </View>
-              <TouchableOpacity>
-                <Image
-                  style={styles.share}
-                  source={require("../../assets/icons/share.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {/* NỘI DUNG MỘT STATUS */}
-
-          <View style={styles.status}></View>
-          <View style={styles.status}></View>
+          ))}
         </View>
       </ScrollView>
     </View>

@@ -1,7 +1,7 @@
-import firebase from "firebase/app";
-import "firebase/auth"; // Authentication
-import "firebase/database"; // Realtime Database
-import "firebase/storage"; // Storage
+import { initializeApp } from "firebase/app";
+// import "firebase/auth"; // Authentication
+import { getDatabase } from "firebase/database"; // Realtime Database
+// import "firebase/storage"; // Storage
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-ajAQ1iDfhswiEZFh5MFoss44SjibteM",
@@ -18,8 +18,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Khởi tạo các dịch vụ Firebase cần sử dụng
-const storage = firebase.storage();
-const db = firebase.database();
-const auth = firebase.auth();
+// const storage = storage(app);
+const database = getDatabase(app);
+// const auth = auth(app);
 
-export { storage, db, auth };
+export { database };
