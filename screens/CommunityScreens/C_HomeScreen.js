@@ -45,7 +45,7 @@ export default function C_HomeScreen({ navigation }) {
         const statusPromises = [];
 
         // Lặp qua danh sách bài đăng và gọi hàm getStatusInfo cho mỗi bài đăng
-        for (const postId in postsData) {
+        for (postId in postsData) {
           const statusPromise = getStatusInfo(postId);
           statusPromises.push(statusPromise);
         }
@@ -142,8 +142,8 @@ export default function C_HomeScreen({ navigation }) {
 
           {recentPosts.map((post) => (
             <TouchableOpacity
-              style={styles.status}
               key={post.postId}
+              style={styles.status}
               onPress={() =>
                 navigation.navigate("C_Status", { postId: post.postId })
               }
@@ -340,6 +340,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     margin: 8,
+    borderRadius: 50,
   },
   status_option: {
     width: 28,

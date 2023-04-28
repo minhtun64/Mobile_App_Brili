@@ -14,6 +14,7 @@ const getStatusInfo = async (postId) => {
       const userData = userSnapshot.val();
 
       const statusInfo = {
+        postId,
         userId,
         userName: userData.name,
         userAvatar: userData.avatar,

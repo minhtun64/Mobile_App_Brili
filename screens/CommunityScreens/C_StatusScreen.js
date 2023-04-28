@@ -639,6 +639,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     margin: 8,
+    borderRadius: 50,
   },
   status_option: {
     width: 28,
@@ -731,6 +732,7 @@ const styles = StyleSheet.create({
     height: 40,
     marginRight: 8,
     marginLeft: 16,
+    borderRadius: 50,
   },
   comment_like: {
     width: 18,
