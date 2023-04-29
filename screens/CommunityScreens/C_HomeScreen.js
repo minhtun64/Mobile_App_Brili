@@ -11,7 +11,6 @@ import {
   Animated,
   Modal,
   RefreshControl,
-  ActivityIndicator,
 } from "react-native";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import { Audio } from "expo-av";
@@ -22,7 +21,6 @@ import { onValue, ref, get, set, push } from "firebase/database";
 import getStatusInfo from "../../firebase_functions/getStatusInfo";
 import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
-import { CachedImage } from "react-native-expo-image-cache";
 
 export default function C_HomeScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -30,30 +28,6 @@ export default function C_HomeScreen({ navigation }) {
   const [recentPosts, setRecentPosts] = useState([]);
   const [cachedPostData, setCachedPostData] = useState({});
   const [likedPosts, setLikedPosts] = useState([]);
-
-  const LoadingImage = ({ source }) => {
-    const [isLoading, setLoading] = useState(true);
-
-    const handleImageLoad = () => {
-      setLoading(false);
-    };
-
-    return (
-      <TouchableOpacity>
-        {isLoading ? (
-          <Image
-            style={styles.status_image_loading}
-            source={require("../../assets/images/loading.gif")}
-          />
-        ) : null}
-        <Image
-          style={styles.status_image}
-          source={source}
-          onLoad={handleImageLoad}
-        />
-      </TouchableOpacity>
-    );
-  };
 
   const fetchRecentPosts = async () => {
     try {
@@ -306,7 +280,7 @@ export default function C_HomeScreen({ navigation }) {
 
                 {/* Ảnh / Video Status */}
                 <TouchableOpacity>
-                  <LoadingImage
+                  <Image
                     style={styles.status_image}
                     source={{ uri: post.media }}
                   />
@@ -510,16 +484,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     margin: 8,
     borderRadius: 12,
-    //transform: [{ scale: this.state.scaleValue }],
-  },
-  status_image_loading: {
-    width: 320,
-    height: 180,
-    // resizeMode: "contain",
-    alignSelf: "center",
-    margin: 8,
-    borderRadius: 12,
-    marginBottom: -180,
     //transform: [{ scale: this.state.scaleValue }],
   },
   like: {
