@@ -14,6 +14,7 @@ import {
   Keyboard,
   Platform,
   Dimensions,
+  RefreshControl,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { requestMediaLibraryPermissionsAsync } from "expo-image-picker";
@@ -25,38 +26,148 @@ import React, {
   useLayoutEffect,
   useRef,
 } from "react";
-import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import {
+  useNavigation,
+  useScrollToTop,
+  useRoute,
+} from "@react-navigation/native";
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
 import { AntDesign } from "@expo/vector-icons";
-// import EmojiBoard from "react-native-emoji-board";
+
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
 import { Permissions } from "expo-permissions";
 import * as FileSystem from "expo-file-system";
 
-export default function C_StatusScreen({ navigation }) {
+import { database } from "../../firebase";
+import { onValue, ref, get, set, push } from "firebase/database";
+import getStatusInfo from "../../firebase_functions/getStatusInfo";
+import moment from "moment";
+
+export default function C_StatusScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+
   const [fontLoaded, setFontLoaded] = useState(false);
 
   const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
+
+  const [statusInfo, setStatusInfo] = useState(null);
+  const [commentedUsers, setCommentedUsers] = useState([]);
+
+  const fetchPost = async () => {
+    const postId = route?.params?.postId;
+    if (postId) {
+      getStatusInfo(postId)
+        .then((info) => {
+          setStatusInfo(info);
+          setCommentedUsers(info.commentedUsers);
+        })
+        .catch((error) => console.log(error));
+    }
+  };
+
+  useEffect(() => {
+    fetchPost();
+  }, [route?.params?.postId]);
+
+  const isLiked =
+    statusInfo &&
+    statusInfo.likedUsers &&
+    statusInfo.likedUsers.some((user) => user.userId === "10"); //ID NGƯỜI DÙNG CHÍNH THỨC
+
+  const handleLikePost = async (postId, isLiked) => {
+    try {
+      const userId = 10; // Thay thế bằng ID người dùng thực tế
+      if (isLiked) {
+        // Unlike the post
+        const likesSnapshot = await get(
+          ref(database, `like/${postId}/${userId}`)
+        );
+        const likesData = likesSnapshot.val();
+
+        for (const commentId in likesData) {
+          if (commentId === "0") {
+            await set(
+              ref(database, `like/${postId}/${userId}/${commentId}`),
+              null
+            );
+          }
+        }
+      } else {
+        // Like the post
+        const likeData = {
+          date: moment().format("DD-MM-YYYY HH:mm:ss"),
+        };
+        await set(ref(database, `like/${postId}/${userId}/0`), likeData);
+      }
+
+      // Fetch bài viếty để cập nhật giao diện
+      fetchPost();
+    } catch (error) {
+      console.error("Error handling like:", error);
+    }
+  };
+
+  const scrollViewRef = useRef(null);
+
+  const handleCommentSubmit = async (postId) => {
+    // Tạo một comment id mới
+    let newCommentId = 1;
+    const commentsSnapshot = await get(ref(database, `comment`));
+    const commentsData = commentsSnapshot.val();
+    if (commentsData) {
+      const commentIds = Object.keys(commentsData);
+      const maxCommentId = Math.max(...commentIds.map(Number));
+      newCommentId = maxCommentId + 1;
+    }
+
+    // Tạo dữ liệu mới cho comment
+    const newCommentData = {
+      user_id: 10,
+      content: value,
+      date: moment().format("DD-MM-YYYY HH:mm:ss"),
+      comment_id: 0, // Comment cha, nếu có
+      post_id: postId,
+    };
+
+    // Update vào database
+    await set(ref(database, `comment/${newCommentId}`), newCommentData);
+
+    // Reset giá trị value
+    setValue("");
+
+    // Thực hiện các bước cần thiết sau khi cập nhật bình luận, ví dụ:
+    // 1. Làm mới danh sách bình luận
+    // 2. Cập nhật giao diện để hiển thị bình luận mới
+
+    // Ví dụ: Sử dụng fetchPost() để làm mới danh sách bình luận
+    await fetchPost();
+
+    // Cuộn xuống dưới cùng
+    scrollViewRef.current.scrollToEnd();
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchPost();
+    setRefreshing(false);
+  };
 
   function onSwipeLeft() {
     //navigation.goBack();
   }
 
   function onSwipeRight() {
-    navigation.goBack();
+    navigation.popToTop();
   }
 
   const [value, setValue] = useState("");
   const [lineCount, setLineCount] = useState(1);
   const [height, setHeight] = useState(30);
-  // const [showEmojiBoard, setShowEmojiBoard] = useState(false);
-
-  // const toggleEmojiBoard = () => setShowEmojiBoard(!showEmojiBoard);
-
-  // const onEmojiSelected = (emoji) => setValue((prevValue) => prevValue + emoji);
 
   const handleContentSizeChange = (event) => {
     const { contentSize } = event.nativeEvent;
@@ -178,12 +289,16 @@ export default function C_StatusScreen({ navigation }) {
       <View style={styles.heading}></View>
       <ScrollView
         style={styles.content}
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
       >
         {/* Nút quay lại */}
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.popToTop()}>
           <Image
             style={styles.back}
             source={require("../../assets/icons/back.png")}
@@ -199,279 +314,252 @@ export default function C_StatusScreen({ navigation }) {
             ></Image>
           </View>
 
-          {/* NỘI DUNG MỘT STATUS */}
-          <View style={styles.status}>
-            <View style={styles.row}>
-              <View style={styles.row2}>
+          {statusInfo && (
+            <View style={styles.status}>
+              <View style={styles.row}>
+                <View style={styles.row2}>
+                  <TouchableOpacity>
+                    {/* Ảnh đại diện người đăng */}
+                    <Image
+                      style={styles.avatar50}
+                      source={{ uri: statusInfo.userAvatar }}
+                    ></Image>
+                  </TouchableOpacity>
+                  <View>
+                    <TouchableOpacity>
+                      {/* Tên người đăng */}
+                      <Text style={styles.status_name}>
+                        {statusInfo.userName}
+                      </Text>
+                    </TouchableOpacity>
+                    {/* Thời gian đăng */}
+                    <Text style={styles.status_date}>
+                      {statusInfo.formattedDate}
+                    </Text>
+                  </View>
+                </View>
                 <TouchableOpacity>
-                  {/* Ảnh đại diện người đăng */}
+                  {/* Tùy chọn Status */}
                   <Image
-                    style={styles.avatar50}
-                    source={require("../../assets/images/avatar-1.png")}
+                    style={styles.status_option}
+                    source={require("../../assets/icons/option.png")}
                   ></Image>
                 </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người đăng */}
-                    <Text style={styles.status_name}>Đặng Minh Tuấn</Text>
-                  </TouchableOpacity>
-                  {/* Thời gian đăng */}
-                  <Text style={styles.status_date}>4 giờ trước</Text>
-                </View>
               </View>
-              <TouchableOpacity>
-                {/* Tùy chọn Status */}
+
+              {/* Nội dung Status */}
+              <Text style={styles.status_content} selectable={true}>
+                {statusInfo.content}
+              </Text>
+
+              {/* Ảnh / Video Status */}
+              <TouchableOpacity onPress={() => setModalVisible(true)}>
                 <Image
-                  style={styles.status_option}
-                  source={require("../../assets/icons/option.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-
-            {/* Nội dung Status */}
-            <Text style={styles.status_content} selectable={true}>
-              Good morning!!! {"\u2764"}
-              {"\u2601"}
-            </Text>
-
-            {/* Ảnh / Video Status */}
-            <TouchableOpacity onPress={() => setModalVisible(true)}>
-              <Image
-                style={styles.status_image}
-                source={require("../../assets/images/status-1.png")}
-              />
-            </TouchableOpacity>
-
-            <Modal
-              animationType="slide"
-              transparent={false}
-              visible={modalVisible}
-              onRequestClose={() => {
-                setModalVisible(false);
-              }}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                style={{
-                  flex: 1,
-
-                  backgroundColor: showOptions ? "rgba(0,0,0,0.5)" : "white",
-                }}
-                onPress={closeOptions}
-              >
-                {/* Icon để đóng Modal */}
-                <TouchableOpacity
-                  style={{
-                    position: "absolute",
-                    top: 80,
-                    left: 20,
-                    zIndex: 1,
-                  }}
-                  onPress={() => {
-                    closeOptions();
-                    setModalVisible(false);
-                  }}
-                >
-                  <Image
-                    source={require("../../assets/icons/close.png")}
-                    style={{ width: 20, height: 20 }}
-                  />
-                </TouchableOpacity>
-
-                {/* Icon để hiển thị các tùy chọn khác */}
-                <TouchableOpacity
-                  style={{
-                    position: "absolute",
-                    top: 80,
-                    right: 20,
-                    zIndex: 1,
-                  }}
-                  onPress={openOptions}
-                >
-                  <Image
-                    source={require("../../assets/icons/dots.png")}
-                    style={{ width: 20, height: 20 }}
-                  />
-                </TouchableOpacity>
-
-                {/* Hình ảnh sẽ hiển thị trong Modal */}
-                <Image
-                  source={require("../../assets/images/status-1.png")}
-                  style={{
-                    width: Dimensions.get("window").width,
-                    height: "100%",
-                    marginTop: -40,
-                    opacity: showOptions ? 0.5 : 1,
-                  }}
-                  resizeMode="contain"
+                  style={styles.status_image}
+                  source={{ uri: statusInfo.media }}
                 />
               </TouchableOpacity>
-              {/* Bottom pop up */}
-              {showOptions && (
-                <View
+
+              <Modal
+                animationType="slide"
+                transparent={false}
+                visible={modalVisible}
+                onRequestClose={() => {
+                  setModalVisible(false);
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={1}
                   style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    backgroundColor: "#FFF6F6",
-                    height: "16%",
-                    justifyContent: "space-around",
-                    alignItems: "center",
-                    borderTopWidth: 1,
-                    borderTopColor: "#FCAC9E",
-                    borderTopLeftRadius: 20,
-                    borderTopRightRadius: 20,
-                    paddingBottom: 24,
+                    flex: 1,
+
+                    backgroundColor: showOptions ? "rgba(0,0,0,0.5)" : "white",
                   }}
+                  onPress={closeOptions}
                 >
-                  <TouchableOpacity onPress={SaveImage}>
-                    <Text style={styles.image_option}>Lưu ảnh</Text>
+                  {/* Icon để đóng Modal */}
+                  <TouchableOpacity
+                    style={{
+                      position: "absolute",
+                      top: 80,
+                      left: 20,
+                      zIndex: 1,
+                    }}
+                    onPress={() => {
+                      closeOptions();
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Image
+                      source={require("../../assets/icons/close.png")}
+                      style={{ width: 20, height: 20 }}
+                    />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={ShareImage}>
-                    <Text style={styles.image_option}>Chia sẻ ảnh</Text>
+
+                  {/* Icon để hiển thị các tùy chọn khác */}
+                  <TouchableOpacity
+                    style={{
+                      position: "absolute",
+                      top: 80,
+                      right: 20,
+                      zIndex: 1,
+                    }}
+                    onPress={openOptions}
+                  >
+                    <Image
+                      source={require("../../assets/icons/dots.png")}
+                      style={{ width: 20, height: 20 }}
+                    />
+                  </TouchableOpacity>
+
+                  {/* Hình ảnh sẽ hiển thị trong Modal */}
+                  <Image
+                    source={{ uri: statusInfo.media }}
+                    style={{
+                      width: Dimensions.get("window").width,
+                      height: "100%",
+                      marginTop: -40,
+                      opacity: showOptions ? 0.5 : 1,
+                    }}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+                {/* Bottom pop up */}
+                {showOptions && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "#FFF6F6",
+                      height: "16%",
+                      justifyContent: "space-around",
+                      alignItems: "center",
+                      borderTopWidth: 1,
+                      borderTopColor: "#FCAC9E",
+                      borderTopLeftRadius: 20,
+                      borderTopRightRadius: 20,
+                      paddingBottom: 24,
+                    }}
+                  >
+                    <TouchableOpacity onPress={SaveImage}>
+                      <Text style={styles.image_option}>Lưu ảnh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={ShareImage}>
+                      <Text style={styles.image_option}>Chia sẻ ảnh</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </Modal>
+
+              {/* Like / Comment / Share */}
+              <View style={styles.row}>
+                <View style={styles.row2}>
+                  {statusInfo.likedUsers && (
+                    <TouchableOpacity
+                      onPress={() => handleLikePost(statusInfo.postId, isLiked)}
+                    >
+                      <Image
+                        style={styles.like}
+                        source={
+                          isLiked
+                            ? require("../../assets/icons/liked.png")
+                            : require("../../assets/icons/like.png")
+                        }
+                      ></Image>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("C_StatusLikedList")}
+                  >
+                    <Text style={styles.status_like_comment}>
+                      {statusInfo.likeCount} Lượt thích
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPressIn={onPressInHandler}>
+                    <Image
+                      style={styles.comment}
+                      source={require("../../assets/icons/comment.png")}
+                    ></Image>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPressIn={onPressInHandler}>
+                    <Text style={styles.status_like_comment}>
+                      {statusInfo.commentCount} Bình luận
+                    </Text>
                   </TouchableOpacity>
                 </View>
-              )}
-            </Modal>
-
-            {/* Like / Comment / Share */}
-            <View style={styles.row}>
-              <View style={styles.row2}>
                 <TouchableOpacity>
                   <Image
-                    style={styles.like}
-                    source={require("../../assets/icons/like.png")}
+                    style={styles.share}
+                    source={require("../../assets/icons/share.png")}
                   ></Image>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("C_StatusLikedList")}
-                >
-                  <Text style={styles.status_like_comment}>12 Lượt thích</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPressIn={onPressInHandler}>
-                  <Image
-                    style={styles.comment}
-                    source={require("../../assets/icons/comment.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <TouchableOpacity onPressIn={onPressInHandler}>
-                  <Text style={styles.status_like_comment}>3 Bình luận</Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity>
-                <Image
-                  style={styles.share}
-                  source={require("../../assets/icons/share.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.pinkline}></View>
+              <View style={styles.pinkline}></View>
 
-            {/* BÌNH LUẬN*/}
-            <View style={styles.row4}>
-              <View style={styles.row5}>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("C_Profile")}
-                >
-                  {/* Ảnh đại diện người bình luận */}
-                  <Image
-                    style={styles.avatar40}
-                    source={require("../../assets/images/avatar-2.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <View style={styles.comment_name_content}>
+              {/* BÌNH LUẬN*/}
+              {commentedUsers.map((commentedUser) => (
+                <View style={styles.row4} key={commentedUser.commentId}>
+                  <View style={styles.row5}>
                     <TouchableOpacity
                       onPress={() => navigation.navigate("C_Profile")}
                     >
-                      {/* Tên người bình luận */}
-                      <Text style={styles.comment_name}>Lê Hoàng Sơn</Text>
+                      {/* Ảnh đại diện người bình luận */}
+                      <Image
+                        style={styles.avatar40}
+                        source={{ uri: commentedUser.userAvatar }}
+                      ></Image>
                     </TouchableOpacity>
-                    {/* Nội dung bình luận */}
-                    <Text style={styles.comment_content} selectable={true}>
-                      Phènnnnnnnnnnnnnnnnnnnnnnnnnnn
-                    </Text>
-                  </View>
-                  <View style={styles.row5}>
-                    {/* Thời gian đăng */}
-                    <Text style={styles.comment_date}>34 phút</Text>
+                    <View>
+                      <View style={styles.comment_name_content}>
+                        <TouchableOpacity
+                          onPress={() => navigation.navigate("C_Profile")}
+                        >
+                          {/* Tên người bình luận */}
+                          <Text style={styles.comment_name}>
+                            {commentedUser.userName}
+                          </Text>
+                        </TouchableOpacity>
+                        {/* Nội dung bình luận */}
+                        <Text style={styles.comment_content} selectable={true}>
+                          {commentedUser.content}
+                        </Text>
+                      </View>
+                      <View style={styles.row5}>
+                        {/* Thời gian đăng */}
+                        <Text style={styles.comment_date}>
+                          {commentedUser.formattedDate}
+                        </Text>
 
-                    <TouchableOpacity>
-                      {/* Số người thích bình luận */}
-                      <Text style={styles.comment_option}>2 lượt thích</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity>
+                          {/* Số người thích bình luận */}
+                          <Text style={styles.comment_option}>
+                            {commentedUser.likeCount} lượt thích
+                          </Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity>
-                      {/* Phản hồi bình luận */}
-                      <Text style={styles.comment_option}>Phản hồi</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity>
+                          {/* Phản hồi bình luận */}
+                          <Text style={styles.comment_option}>Phản hồi</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </View>
+                  <TouchableOpacity>
+                    {/* Tùy chọn Status */}
+                    <Image
+                      style={styles.comment_like}
+                      source={require("../../assets/icons/liked.png")}
+                    ></Image>
+                  </TouchableOpacity>
                 </View>
-              </View>
-              <TouchableOpacity>
-                {/* Tùy chọn Status */}
-                <Image
-                  style={styles.comment_like}
-                  source={require("../../assets/icons/liked.png")}
-                ></Image>
-              </TouchableOpacity>
+              ))}
+              {/* BÌNH LUẬN*/}
             </View>
-            {/* BÌNH LUẬN*/}
-
-            {/* BÌNH LUẬN*/}
-            <View style={styles.row4}>
-              <View style={styles.row5}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người bình luận */}
-                  <Image
-                    style={styles.avatar40}
-                    source={require("../../assets/images/avatar-3.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <View style={styles.comment_name_content}>
-                    <TouchableOpacity>
-                      {/* Tên người bình luận */}
-                      <Text style={styles.comment_name}>Võ Thanh Phương</Text>
-                    </TouchableOpacity>
-                    {/* Nội dung bình luận */}
-                    <Text style={styles.comment_content} selectable={true}>
-                      Xinh đẹp, tuyệt vời
-                    </Text>
-                  </View>
-                  <View style={styles.row5}>
-                    {/* Thời gian đăng */}
-                    <Text style={styles.comment_date}>12 phút</Text>
-
-                    <TouchableOpacity>
-                      {/* Tên người bình luận */}
-                      <Text style={styles.comment_option}>0 lượt thích</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity>
-                      {/* Tên người bình luận */}
-                      <Text style={styles.comment_option}>Phản hồi</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-              <TouchableOpacity>
-                {/* Tùy chọn Status */}
-                <Image
-                  style={styles.comment_like}
-                  source={require("../../assets/icons/like.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-            {/* BÌNH LUẬN*/}
-
-            {/* MỜI BÌNH LUẬN*/}
-
-            {/* MỜI BÌNH LUẬN*/}
-          </View>
+          )}
         </View>
-        {/* NỘI DUNG MỘT STATUS */}
       </ScrollView>
       {/* MỜI BÌNH LUẬN*/}
       <View style={styles.mycomment}>
@@ -557,7 +645,9 @@ export default function C_StatusScreen({ navigation }) {
             </View>
           </View>
           {value && (
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleCommentSubmit(statusInfo.postId)}
+            >
               {/* Icon Send */}
               <Image
                 style={styles.comment_send}
@@ -567,7 +657,7 @@ export default function C_StatusScreen({ navigation }) {
           )}
         </View>
 
-        {/* BÌNH LUẬN*/}
+        {/* MỜI BÌNH LUẬN*/}
       </View>
     </KeyboardAvoidingView>
   );

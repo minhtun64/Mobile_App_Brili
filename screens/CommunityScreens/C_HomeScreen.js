@@ -1,67 +1,117 @@
+import React, { useEffect, useState } from "react";
 import {
-  TouchableOpacity,
-  Button,
+  View,
   Text,
   StyleSheet,
-  View,
+  TouchableOpacity,
+  Button,
   Image,
   ImageBackground,
   ScrollView,
   Animated,
   Modal,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
-import React, {
-  Component,
-  useEffect,
-  useState,
-  useLayoutEffect,
-  useRef,
-} from "react";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import { Audio } from "expo-av";
 import * as Font from "expo-font";
-
+import moment from "moment";
 import { database } from "../../firebase";
-import { ref, get } from "firebase/database";
+import { onValue, ref, get, set, push } from "firebase/database";
 import getStatusInfo from "../../firebase_functions/getStatusInfo";
-
 import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
+import { CachedImage } from "react-native-expo-image-cache";
 
 export default function C_HomeScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [iconStatus, setIconStatus] = useState(false);
-
+  const [refreshing, setRefreshing] = useState(false);
   const [recentPosts, setRecentPosts] = useState([]);
+  const [cachedPostData, setCachedPostData] = useState({});
+  const [likedPosts, setLikedPosts] = useState([]);
 
-  useEffect(() => {
-    const fetchRecentPosts = async () => {
-      try {
-        // Lấy danh sách 20 bài đăng mới nhất từ Firebase
-        const postsRef = ref(database, "post");
-        const postsSnapshot = await get(postsRef);
-        const postsData = postsSnapshot.val();
+  const LoadingImage = ({ source }) => {
+    const [isLoading, setLoading] = useState(true);
 
-        // Tạo mảng chứa các promise của hàm getStatusInfo cho mỗi bài đăng
-        const statusPromises = [];
-
-        // Lặp qua danh sách bài đăng và gọi hàm getStatusInfo cho mỗi bài đăng
-        for (postId in postsData) {
-          const statusPromise = getStatusInfo(postId);
-          statusPromises.push(statusPromise);
-        }
-
-        // Chờ tất cả các promise hoàn thành và lấy kết quả
-        const statusResults = await Promise.all(statusPromises);
-
-        // Cập nhật state recentPosts với danh sách các bài đăng đã lấy được
-        setRecentPosts(statusResults);
-      } catch (error) {
-        console.error("Error retrieving recent posts:", error);
-      }
+    const handleImageLoad = () => {
+      setLoading(false);
     };
 
-    fetchRecentPosts();
-  }, []);
+    return (
+      <TouchableOpacity>
+        {isLoading ? (
+          <Image
+            style={styles.status_image_loading}
+            source={require("../../assets/images/loading.gif")}
+          />
+        ) : null}
+        <Image
+          style={styles.status_image}
+          source={source}
+          onLoad={handleImageLoad}
+        />
+      </TouchableOpacity>
+    );
+  };
+
+  const fetchRecentPosts = async () => {
+    try {
+      // Lấy danh sách bài đăng từ Firebase
+      const postsRef = ref(database, "post");
+      onValue(postsRef, async (snapshot) => {
+        const postsData = snapshot.val();
+        const sortedPosts = Object.values(postsData).sort((a, b) => {
+          const dateA = moment(a.date, "DD-MM-YYYY HH:mm:ss");
+          const dateB = moment(b.date, "DD-MM-YYYY HH:mm:ss");
+          return dateB - dateA;
+        });
+
+        // Tạo một object mới để lưu trữ dữ liệu bài viết đã được caching
+        const updatedCachedPostData = {};
+
+        const statusPromises = sortedPosts.map(async (post) => {
+          const postId = post.id;
+
+          // Kiểm tra xem bài viết đã tồn tại trong cachedPostData chưa
+          if (cachedPostData[postId]) {
+            // Nếu đã tồn tại, lấy dữ liệu từ cachedPostData
+            return cachedPostData[postId];
+          } else {
+            // Nếu chưa tồn tại, lấy dữ liệu từ Firebase
+            const postInfo = await getStatusInfo(postId);
+
+            // Lưu dữ liệu vào updatedCachedPostData
+            updatedCachedPostData[postId] = postInfo;
+
+            return postInfo;
+          }
+        });
+
+        const statusResults = await Promise.all(statusPromises);
+
+        // Cập nhật dữ liệu bài viết gần đây và cachedPostData
+        setRecentPosts(statusResults);
+        setCachedPostData(updatedCachedPostData);
+
+        // Kiểm tra các bài viết đã tải lên lần đầu để xác định những bài đã được người dùng hiện tại thích
+        const likedPosts = statusResults.filter(
+          (post) => post.likedUsers.some((user) => user.userId === "10") //VÍ DỤ ID USER HIỆN TẠI = 10
+        );
+        setLikedPosts(likedPosts);
+      });
+    } catch (error) {
+      console.error("Error retrieving recent posts:", error);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchRecentPosts();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     const loadFont = async () => {
@@ -79,21 +129,91 @@ export default function C_HomeScreen({ navigation }) {
       });
       setFontLoaded(true);
     };
-
     loadFont();
   }, []);
 
-  //Lưu ảnh
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchRecentPosts();
+    setRefreshing(false);
+  };
+
+  const handleLikePost = async (postId, isLiked) => {
+    try {
+      const userId = "10"; //VÍ DỤ ID USER HIỆN TẠI = 10
+      if (isLiked) {
+        // Unlike the post
+        const likesSnapshot = await get(
+          ref(database, `like/${postId}/${userId}`)
+        );
+        const likesData = likesSnapshot.val();
+
+        for (const commentId in likesData) {
+          if (commentId === "0") {
+            await set(
+              ref(database, `like/${postId}/${userId}/${commentId}`),
+              null
+            );
+          }
+        }
+
+        // Xóa bài viết đã được like khỏi danh sách likedPosts
+        const updatedLikedPosts = likedPosts.filter(
+          (post) => post.postId !== postId
+        );
+        setLikedPosts(updatedLikedPosts);
+      } else {
+        // Like the post
+        const likeData = {
+          date: moment().format("DD-MM-YYYY HH:mm:ss"),
+        };
+        await set(ref(database, `like/${postId}/${userId}/0`), likeData);
+
+        // Thêm bài viết vào danh sách likedPosts
+        const updatedLikedPosts = [...likedPosts, { postId }];
+        setLikedPosts(updatedLikedPosts);
+
+        // Phát âm thanh khi nhấn like
+        const soundObject = new Audio.Sound();
+        await soundObject.loadAsync(
+          require("../../assets/soundeffects/like-sound.mp3")
+        );
+        await soundObject.playAsync();
+      }
+
+      // Lấy dữ liệu bài viết đã được caching từ cachedPostData
+      const updatedRecentPosts = recentPosts.map((post) => {
+        if (post.postId === postId) {
+          return {
+            ...post,
+            isLiked: !isLiked,
+            likeCount: isLiked ? post.likeCount - 1 : post.likeCount + 1,
+          };
+        }
+        return post;
+      });
+      // Cập nhật giao diện với dữ liệu mới
+      setRecentPosts(updatedRecentPosts);
+    } catch (error) {
+      console.error("Error handling like:", error);
+    }
+  };
 
   if (!fontLoaded) {
-    return null; // or a loading spinner
+    return null; // hoặc hiển thị một spinner để hiển thị khi đang tải font
   }
 
   return (
     <View style={styles.container}>
       {/* heading */}
       <View style={styles.heading}></View>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         <View style={styles.post}>
           <View style={styles.row}>
             <Image
@@ -139,92 +259,97 @@ export default function C_HomeScreen({ navigation }) {
               //resizeMode="contain"
             ></Image>
           </View>
-
-          {recentPosts.map((post) => (
-            <TouchableOpacity
-              key={post.postId}
-              style={styles.status}
-              onPress={() =>
-                navigation.navigate("C_Status", { postId: post.postId })
-              }
-            >
-              <View style={styles.row}>
-                <View style={styles.row2}>
-                  <TouchableOpacity>
-                    {/* Ảnh đại diện người đăng */}
-                    <Image
-                      style={styles.avatar50}
-                      source={{ uri: post.userAvatar }}
-                    ></Image>
-                  </TouchableOpacity>
-                  <View>
+          {recentPosts.map((post) => {
+            const isLiked = likedPosts.some(
+              (likedPost) => likedPost.postId === post.postId
+            );
+            return (
+              <TouchableOpacity
+                key={post.postId}
+                style={styles.status}
+                onPress={() =>
+                  navigation.navigate("C_Status", { postId: post.postId })
+                }
+              >
+                <View style={styles.row}>
+                  <View style={styles.row2}>
                     <TouchableOpacity>
-                      {/* Tên người đăng */}
-                      <Text style={styles.status_name}>{post.userName}</Text>
+                      {/* Ảnh đại diện người đăng */}
+                      <Image
+                        style={styles.avatar50}
+                        source={{ uri: post.userAvatar }}
+                      ></Image>
                     </TouchableOpacity>
-                    {/* Thời gian đăng */}
-                    <Text style={styles.status_date}>{post.date}</Text>
+                    <View>
+                      <TouchableOpacity>
+                        {/* Tên người đăng */}
+                        <Text style={styles.status_name}>{post.userName}</Text>
+                      </TouchableOpacity>
+                      {/* Thời gian đăng */}
+                      <Text style={styles.status_date}>
+                        {post.formattedDate}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <TouchableOpacity>
-                  {/* Tùy chọn Status */}
-                  <Image
-                    style={styles.status_option}
-                    source={require("../../assets/icons/option.png")}
-                  ></Image>
-                </TouchableOpacity>
-              </View>
-
-              {/* Nội dung Status */}
-              <Text style={styles.status_content} selectable={true}>
-                {post.content}
-              </Text>
-
-              {/* Ảnh / Video Status */}
-              <TouchableOpacity>
-                <Image
-                  style={styles.status_image}
-                  source={{ uri: post.image }}
-                />
-              </TouchableOpacity>
-
-              {/* Like / Comment / Share */}
-              <View style={styles.row}>
-                <View style={styles.row2}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setIconStatus(!iconStatus);
-                    }}
-                  >
+                  <TouchableOpacity>
+                    {/* Tùy chọn Status */}
                     <Image
-                      style={styles.like}
-                      source={
-                        iconStatus
-                          ? require("../../assets/icons/liked.png")
-                          : require("../../assets/icons/like.png")
+                      style={styles.status_option}
+                      source={require("../../assets/icons/option.png")}
+                    ></Image>
+                  </TouchableOpacity>
+                </View>
+                {/* Nội dung Status */}
+                <Text style={styles.status_content} selectable={true}>
+                  {post.content}
+                </Text>
+
+                {/* Ảnh / Video Status */}
+                <TouchableOpacity>
+                  <LoadingImage
+                    style={styles.status_image}
+                    source={{ uri: post.media }}
+                  />
+                </TouchableOpacity>
+
+                {/* Like / Comment / Share */}
+                <View style={styles.row}>
+                  <View style={styles.row2}>
+                    <TouchableOpacity
+                      onPress={() => handleLikePost(post.postId, isLiked)}
+                    >
+                      <Image
+                        style={styles.like}
+                        source={
+                          isLiked
+                            ? require("../../assets/icons/liked.png")
+                            : require("../../assets/icons/like.png")
+                        }
+                      ></Image>
+                    </TouchableOpacity>
+                    <Text>{post.likeCount}</Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("C_Status", { postId: post.postId })
                       }
-                    ></Image>
-                  </TouchableOpacity>
-                  <Text>12</Text>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("C_Status")}
-                  >
+                    >
+                      <Image
+                        style={styles.comment}
+                        source={require("../../assets/icons/comment.png")}
+                      ></Image>
+                    </TouchableOpacity>
+                    <Text>{post.commentCount}</Text>
+                  </View>
+                  <TouchableOpacity>
                     <Image
-                      style={styles.comment}
-                      source={require("../../assets/icons/comment.png")}
+                      style={styles.share}
+                      source={require("../../assets/icons/share.png")}
                     ></Image>
                   </TouchableOpacity>
-                  <Text>3</Text>
                 </View>
-                <TouchableOpacity>
-                  <Image
-                    style={styles.share}
-                    source={require("../../assets/icons/share.png")}
-                  ></Image>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     </View>
@@ -385,6 +510,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     margin: 8,
     borderRadius: 12,
+    //transform: [{ scale: this.state.scaleValue }],
+  },
+  status_image_loading: {
+    width: 320,
+    height: 180,
+    // resizeMode: "contain",
+    alignSelf: "center",
+    margin: 8,
+    borderRadius: 12,
+    marginBottom: -180,
     //transform: [{ scale: this.state.scaleValue }],
   },
   like: {
