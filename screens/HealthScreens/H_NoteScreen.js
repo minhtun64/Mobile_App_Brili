@@ -233,6 +233,34 @@
                     ></Image>
                   </TouchableOpacity>
                 </View>
+                <View style = {styles.taskItem}>
+                  <Text style={styles.taskTitle}>
+                    Tiêm ngừa dại
+                  </Text>
+                  <Text style={styles.taskTime}>
+                    10:30
+                  </Text>
+                  <TouchableOpacity >
+                    <Image
+                      style={styles.taskEditIcon}
+                      source={require("../../assets/icons/editIcon.png")}
+                    ></Image>
+                  </TouchableOpacity>
+                </View>
+                <View style = {styles.taskItem}>
+                  <Text style={styles.taskTitle}>
+                    Tiêm ngừa dại
+                  </Text>
+                  <Text style={styles.taskTime}>
+                    10:30
+                  </Text>
+                  <TouchableOpacity >
+                    <Image
+                      style={styles.taskEditIcon}
+                      source={require("../../assets/icons/editIcon.png")}
+                    ></Image>
+                  </TouchableOpacity>
+                </View>
               </View>
             </ScrollView>    
             <TouchableOpacity style={styles.containerAddBtn} onPress={() => navigation.navigate("H_AddNote")}>
