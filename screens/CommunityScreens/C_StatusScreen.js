@@ -302,9 +302,9 @@ export default function C_StatusScreen() {
   };
   //Lưu/ Chia sẻ ảnh
 
-  if (!fontLoaded) {
-    return null; // or a loading spinner
-  }
+  // if (!fontLoaded) {
+  //   return null; // or a loading spinner
+  // }
 
   return (
     <KeyboardAvoidingView
