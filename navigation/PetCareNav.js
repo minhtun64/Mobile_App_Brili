@@ -11,7 +11,6 @@ import FirstOwnerInfoScreen from "../screens/FirstOwnerInfoScreen";
 import FirstPetInfoScreen from "../screens/FirstPetInfoScreen";
 import C_HomeScreen from "../screens/CommunityScreens/C_HomeScreen";
 import H_NoteScreen from "../screens/HealthScreens/H_NoteScreen";
-import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
 import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
@@ -22,6 +21,12 @@ import C_SearchScreen from "../screens/CommunityScreens/C_SearchScreen";
 import C_ProfileScreen from "../screens/CommunityScreens/C_ProfileScreen";
 import C_FollowingListScreen from "../screens/CommunityScreens/C_FollowingListScreen";
 import C_FollowedListScreen from "../screens/CommunityScreens/C_FollowedListScreen";
+import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
+import V_LocationScreen from "../screens/VeterinarianScreens/V_LocationScreen";
+import V_ListVetClinicScreen from "../screens/VeterinarianScreens/V_ListVetClinicScreen";
+import V_BookingVetScreen from "../screens/VeterinarianScreens/V_BookingVetScreen";
+import V_BookingSuccessScreen from "../screens/VeterinarianScreens/V_BookingSuccessScreen";
+import V_ListAppointmentScreen from "../screens/VeterinarianScreens/V_ListAppointmentScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
@@ -88,8 +93,28 @@ function VeterinarianStackNavigator() {
   return (
     <VeterinarianStack.Navigator screenOptions={{ headerShown: false }}>
       <VeterinarianStack.Screen
+        name="V_Origin"
+        component={V_OriginScreen}
+      />
+      <VeterinarianStack.Screen
         name="V_Location"
         component={V_LocationScreen}
+      />
+      <VeterinarianStack.Screen
+        name="V_ListVetClinic"
+        component={V_ListVetClinicScreen}
+      />
+      <VeterinarianStack.Screen
+        name="V_BookingVet"
+        component={V_BookingVetScreen}
+      />
+      <VeterinarianStack.Screen
+        name="V_BookingSuccess"
+        component={V_BookingSuccessScreen}
+      />
+      <VeterinarianStack.Screen
+        name="V_ListAppointment"
+        component={V_ListAppointmentScreen}
       />
     </VeterinarianStack.Navigator>
   );
