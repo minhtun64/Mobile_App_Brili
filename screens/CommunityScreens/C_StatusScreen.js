@@ -41,10 +41,19 @@ import * as MediaLibrary from "expo-media-library";
 import { Permissions } from "expo-permissions";
 import * as FileSystem from "expo-file-system";
 
-import { database } from "../../firebase";
-import { onValue, ref, get, set, push } from "firebase/database";
+import { storage, database } from "../../firebase";
+import { getDatabase, set, push, ref, get } from "firebase/database";
+import {
+  getDownloadURL,
+  getStorage,
+  uploadBytes,
+  ref as storageRef,
+} from "firebase/storage";
+
 import getStatusInfo from "../../firebase_functions/getStatusInfo";
 import moment from "moment";
+
+import { Audio } from "expo-av";
 
 export default function C_StatusScreen() {
   const navigation = useNavigation();
@@ -104,7 +113,7 @@ export default function C_StatusScreen() {
         await set(ref(database, `like/${postId}/${userId}/0`), likeData);
       }
 
-      // Fetch bài viếty để cập nhật giao diện
+      // Fetch bài viết để cập nhật giao diện
       fetchPost();
     } catch (error) {
       console.error("Error handling like:", error);
@@ -114,9 +123,8 @@ export default function C_StatusScreen() {
   const scrollViewRef = useRef(null);
 
   const handleCommentSubmit = async (postId) => {
-    // Tạo một comment id mới
     let newCommentId = 1;
-    const commentsSnapshot = await get(ref(database, `comment`));
+    const commentsSnapshot = await get(ref(database, "comment"));
     const commentsData = commentsSnapshot.val();
     if (commentsData) {
       const commentIds = Object.keys(commentsData);
@@ -124,30 +132,50 @@ export default function C_StatusScreen() {
       newCommentId = maxCommentId + 1;
     }
 
-    // Tạo dữ liệu mới cho comment
     const newCommentData = {
       user_id: 10,
       content: value,
       date: moment().format("DD-MM-YYYY HH:mm:ss"),
-      comment_id: 0, // Comment cha, nếu có
+      comment_id: 0,
       post_id: postId,
+      media: null,
     };
 
-    // Update vào database
+    if (isSelected) {
+      const response = await fetch(image);
+      const blob = await response.blob();
+
+      const storageReference = storageRef(
+        storage,
+        `Comment_Images/${newCommentId}`
+      );
+      try {
+        await uploadBytes(storageReference, blob);
+        const url = await getDownloadURL(storageReference);
+        newCommentData.media = url;
+      } catch (error) {
+        console.log("Error uploading image:", error);
+      }
+    }
+
     await set(ref(database, `comment/${newCommentId}`), newCommentData);
 
-    // Reset giá trị value
     setValue("");
+    setIsSelected(false);
 
-    // Thực hiện các bước cần thiết sau khi cập nhật bình luận, ví dụ:
-    // 1. Làm mới danh sách bình luận
-    // 2. Cập nhật giao diện để hiển thị bình luận mới
-
-    // Ví dụ: Sử dụng fetchPost() để làm mới danh sách bình luận
     await fetchPost();
 
-    // Cuộn xuống dưới cùng
     scrollViewRef.current.scrollToEnd();
+
+    const soundObject = new Audio.Sound();
+    try {
+      await soundObject.loadAsync(
+        require("../../assets/soundeffects/comment-sound.mp3")
+      );
+      await soundObject.playAsync();
+    } catch (error) {
+      console.log("Error playing comment sound:", error);
+    }
   };
 
   const [refreshing, setRefreshing] = useState(false);
@@ -526,6 +554,17 @@ export default function C_StatusScreen() {
                         <Text style={styles.comment_content} selectable={true}>
                           {commentedUser.content}
                         </Text>
+                        {commentedUser.media && (
+                          <Image
+                            source={{ uri: commentedUser.media }}
+                            style={{
+                              width: 160,
+                              height: 160,
+                              borderRadius: 12,
+                              margin: 8,
+                            }}
+                          />
+                        )}
                       </View>
                       <View style={styles.row5}>
                         {/* Thời gian đăng */}
@@ -573,7 +612,9 @@ export default function C_StatusScreen() {
           </TouchableOpacity>
           <View
             style={
-              value ? styles.comment_textfield : styles.comment_textfield_full
+              value || isSelected
+                ? styles.comment_textfield
+                : styles.comment_textfield_full
             }
           >
             <View style={styles.row6}>
@@ -644,7 +685,7 @@ export default function C_StatusScreen() {
               </View>
             </View>
           </View>
-          {value && (
+          {(value || isSelected) && (
             <TouchableOpacity
               onPress={() => handleCommentSubmit(statusInfo.postId)}
             >
@@ -858,7 +899,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     //marginLeft: 8,
     marginRight: 8,
-    width: "92%",
+    // width: "92%",
     //marginBottom: 8,
   },
   comment_name_content: {
@@ -866,7 +907,7 @@ const styles = StyleSheet.create({
     padding: 4,
     paddingLeft: 8,
     borderRadius: 12,
-    width: "90%",
+    maxWidth: 260,
   },
   greyline: {
     backgroundColor: "#E4E3E3",

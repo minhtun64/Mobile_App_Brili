@@ -86,6 +86,7 @@ const getStatusInfo = async (postId) => {
             userName: commentUserData.name,
             userAvatar: commentUserData.avatar,
             content: comment.content,
+            media: comment.media,
             likeCount: commentLikeCount,
             date: comment.date,
             formattedDate: formattedCommentDate,
