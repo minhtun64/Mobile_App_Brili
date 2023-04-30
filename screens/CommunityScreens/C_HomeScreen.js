@@ -242,7 +242,17 @@ export default function C_HomeScreen({ navigation }) {
                 key={post.postId}
                 style={styles.status}
                 onPress={() =>
-                  navigation.navigate("C_Status", { postId: post.postId })
+                  navigation.navigate("C_Status", {
+                    postId: post.postId,
+                    userName: post.userName,
+                    userAvatar: post.userAvatar,
+                    content: post.content,
+                    media: post.media,
+                    formattedDate: post.formattedDate,
+                    likeCount: post.likeCount,
+                    commentCount: post.commentCount,
+                    isLiked: isLiked,
+                  })
                 }
               >
                 <View style={styles.row}>

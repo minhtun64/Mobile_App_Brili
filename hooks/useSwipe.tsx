@@ -1,33 +1,56 @@
-import { Dimensions } from "react-native";
-const windowWidth = Dimensions.get("window").width;
+import { useRef } from "react";
+import { PanResponder, PanResponderGestureState } from "react-native";
 
 export function useSwipe(
   onSwipeLeft?: any,
   onSwipeRight?: any,
-  rangeOffset = 4
+  onSwipeUp?: any,
+  onSwipeDown?: any,
+  swipeThreshold = 50,
+  swipeVelocityThreshold = 0.3
 ) {
-  let firstTouch = 0;
+  const swipeDirection = useRef("");
 
-  // set user touch start position
-  function onTouchStart(e: any) {
-    firstTouch = e.nativeEvent.pageX;
-  }
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (Math.abs(gestureState.dx) > Math.abs(gestureState.dy)) {
+          if (gestureState.dx > swipeThreshold) {
+            swipeDirection.current = "right";
+          } else if (gestureState.dx < -swipeThreshold) {
+            swipeDirection.current = "left";
+          }
+        } else {
+          if (gestureState.dy > swipeThreshold) {
+            swipeDirection.current = "down";
+          } else if (gestureState.dy < -swipeThreshold) {
+            swipeDirection.current = "up";
+          }
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (swipeDirection.current === "right") {
+          onSwipeRight && onSwipeRight();
+        } else if (swipeDirection.current === "left") {
+          onSwipeLeft && onSwipeLeft();
+        } else if (swipeDirection.current === "up") {
+          onSwipeUp && onSwipeUp();
+        } else if (swipeDirection.current === "down") {
+          onSwipeDown && onSwipeDown();
+        }
+        swipeDirection.current = "";
+      },
+      onPanResponderTerminate: () => {
+        swipeDirection.current = "";
+      },
+      onShouldBlockNativeResponder: () => {
+        return true;
+      },
+    })
+  ).current;
 
-  // when touch ends check for swipe directions
-  function onTouchEnd(e: any) {
-    // get touch position and screen size
-    const positionX = e.nativeEvent.pageX;
-    const range = windowWidth / rangeOffset;
-
-    // check if position is growing positively and has reached specified range
-    if (positionX - firstTouch > range) {
-      onSwipeRight && onSwipeRight();
-    }
-    // check if position is growing negatively and has reached specified range
-    else if (firstTouch - positionX > range) {
-      onSwipeLeft && onSwipeLeft();
-    }
-  }
-
-  return { onTouchStart, onTouchEnd };
+  return panResponder;
 }

@@ -42,7 +42,8 @@ import { Permissions } from "expo-permissions";
 import * as FileSystem from "expo-file-system";
 
 import { storage, database } from "../../firebase";
-import { getDatabase, set, push, ref, get } from "firebase/database";
+import { getDatabase, set, push, ref, get, onValue } from "firebase/database";
+import { formatDate } from "../../components/utils";
 import {
   getDownloadURL,
   getStorage,
@@ -61,13 +62,26 @@ export default function C_StatusScreen() {
 
   const [fontLoaded, setFontLoaded] = useState(false);
 
-  const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
+  // const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
 
-  const [statusInfo, setStatusInfo] = useState(null);
+  const postId = route?.params?.postId;
+
+  const [statusInfo, setStatusInfo] = useState({
+    userName: route?.params?.userName,
+    userAvatar: route?.params?.userAvatar,
+    content: route?.params?.content,
+    media: route?.params?.media,
+    formattedDate: route?.params?.formattedDate,
+    likeCount: route?.params?.likeCount,
+    commentCount: route?.params?.commentCount,
+
+    likedUsers: [],
+    commentedUsers: [],
+  });
   const [commentedUsers, setCommentedUsers] = useState([]);
 
   const fetchPost = async () => {
-    const postId = route?.params?.postId;
+    // const postId = route?.params?.postId;
     if (postId) {
       getStatusInfo(postId)
         .then((info) => {
@@ -82,10 +96,7 @@ export default function C_StatusScreen() {
     fetchPost();
   }, [route?.params?.postId]);
 
-  const isLiked =
-    statusInfo &&
-    statusInfo.likedUsers &&
-    statusInfo.likedUsers.some((user) => user.userId === "10"); //ID NGƯỜI DÙNG CHÍNH THỨC
+  const isLiked = route?.params?.isLiked;
 
   const handleLikePost = async (postId, isLiked) => {
     try {
@@ -122,6 +133,75 @@ export default function C_StatusScreen() {
 
   const scrollViewRef = useRef(null);
 
+  // Lấy thông tin người dùng từ Firebase
+  const getUserInfo = async (userId) => {
+    try {
+      const userRef = ref(database, `user/${userId}`);
+      let userData;
+      await new Promise((resolve) => {
+        onValue(userRef, (snapshot) => {
+          userData = snapshot.val();
+          resolve();
+        });
+      });
+      return userData;
+    } catch (error) {
+      console.error("Error retrieving user information:", error);
+      throw error;
+    }
+  };
+
+  // Lắng nghe sự thay đổi của dữ liệu bình luận và lấy thông tin người dùng từ Firebase
+  useEffect(() => {
+    const commentsRef = ref(database, "comment");
+    onValue(commentsRef, async (snapshot) => {
+      const commentsData = snapshot.val();
+      if (commentsData) {
+        const commentsArray = await Promise.all(
+          Object.keys(commentsData).map(async (commentId) => {
+            const commentData = commentsData[commentId];
+            if (commentData.post_id !== postId) {
+              return null;
+            }
+            const formattedCommentDate = formatDate(commentData.date);
+            const userInfo = await getUserInfo(commentData.user_id);
+            const likeRef = ref(
+              database,
+              `like/${commentData.post_id}/${commentData.user_id}/${commentId}`
+            );
+            const likeSnapshot = await get(likeRef);
+            const likeData = likeSnapshot.val();
+            const likeCount = Object.keys(likeData || {}).length;
+            const likedUsers = [];
+            for (const userId in likeData) {
+              const userLikes = likeData[userId];
+              for (const commentId in userLikes) {
+                const likeUserData = await getUserInfo(userId);
+                likedUsers.push({
+                  userId: userId,
+                  userName: likeUserData.name,
+                  userAvatar: likeUserData.avatar,
+                  userIntro: likeUserData.intro,
+                });
+              }
+            }
+            return {
+              commentId,
+              userAvatar: userInfo.avatar,
+              userName: userInfo.name,
+              content: commentData.content,
+              formattedDate: formattedCommentDate,
+              likeCount: likeCount,
+              media: commentData.media,
+              likedUsers: likedUsers,
+            };
+          })
+        );
+        setCommentedUsers(commentsArray.filter((comment) => comment !== null));
+      }
+    });
+  }, [postId]);
+
   const handleCommentSubmit = async (postId) => {
     let newCommentId = 1;
     const commentsSnapshot = await get(ref(database, "comment"));
@@ -131,7 +211,6 @@ export default function C_StatusScreen() {
       const maxCommentId = Math.max(...commentIds.map(Number));
       newCommentId = maxCommentId + 1;
     }
-
     const newCommentData = {
       user_id: 10,
       content: value,
@@ -140,7 +219,6 @@ export default function C_StatusScreen() {
       post_id: postId,
       media: null,
     };
-
     if (isSelected) {
       const response = await fetch(image);
       const blob = await response.blob();
@@ -157,13 +235,10 @@ export default function C_StatusScreen() {
         console.log("Error uploading image:", error);
       }
     }
-
     await set(ref(database, `comment/${newCommentId}`), newCommentData);
 
     setValue("");
     setIsSelected(false);
-
-    await fetchPost();
 
     scrollViewRef.current.scrollToEnd();
 
@@ -185,13 +260,18 @@ export default function C_StatusScreen() {
     setRefreshing(false);
   };
 
-  function onSwipeLeft() {
-    //navigation.goBack();
-  }
-
-  function onSwipeRight() {
-    navigation.popToTop();
-  }
+  const panResponder = useSwipe(
+    () => {
+      // console.log("swiped left")
+    },
+    () => navigation.goBack(),
+    () => {
+      // console.log("swiped up")
+    },
+    () => {
+      // console.log("swiped down")
+    }
+  );
 
   const [value, setValue] = useState("");
   const [lineCount, setLineCount] = useState(1);
@@ -302,9 +382,9 @@ export default function C_StatusScreen() {
   };
   //Lưu/ Chia sẻ ảnh
 
-  // if (!fontLoaded) {
-  //   return null; // or a loading spinner
-  // }
+  if (!fontLoaded) {
+    return null; // or a loading spinner
+  }
 
   return (
     <KeyboardAvoidingView
@@ -319,8 +399,7 @@ export default function C_StatusScreen() {
         style={styles.content}
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        {...panResponder.panHandlers}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }

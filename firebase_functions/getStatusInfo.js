@@ -96,7 +96,15 @@ const getStatusInfo = async (postId) => {
       }
 
       // Sắp xếp các bình luận từ cũ nhất tới mới nhất dựa trên date
-      commentedUsers.sort((a, b) => new Date(a.date) - new Date(b.date));
+      commentedUsers.sort((a, b) => {
+        const aDateParts = a.date.split(" ");
+        const aDate =
+          aDateParts[0].split("-").reverse().join("-") + " " + aDateParts[1];
+        const bDateParts = b.date.split(" ");
+        const bDate =
+          bDateParts[0].split("-").reverse().join("-") + " " + bDateParts[1];
+        return new Date(aDate) - new Date(bDate);
+      });
 
       // Tạo đối tượng chứa thông tin của bài viết đã được định dạng lại
       const statusInfo = {
