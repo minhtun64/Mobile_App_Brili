@@ -7,10 +7,15 @@ import {
   Image,
   ScrollView,
   Dimensions,
+  Modal,
+  Alert,
 } from "react-native";
-import React, { Component } from "react";
+import React, { useState } from "react";
 
 export default function V_ListAppointmentScreen({ navigation }) {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [dataModal, setDataModal] = useState({});
+
   const appointmentArr = [
     {
       id: 1,
@@ -21,18 +26,22 @@ export default function V_ListAppointmentScreen({ navigation }) {
       date: '28/04/2023',
       startTime: '09:30',
       endTime: '11:00',
-      status: 'Đã đặt'
+      status: 'Đã đặt',
+      petName: 'Mỹ Diệu',
+      description: 'Cái nết đào cát quá chừng chừng',
     },
     {
       id: 2,
       avatar: '',
-      name: 'Phòng khám Pet Hospital',
+      name: 'Phòng khám Pet Hospital Cơ sở 2',
       address: '53 Thạch Thị Thanh, Quận 1, Thành phố Hồ Chí Minh',
       createDate: '14/03/2023',
       date: '16/03/2023',
       startTime: '16:30',
       endTime: '18:00',
       status: 'Đã xong',
+      petName: 'Bé Dâu',
+      description: 'Ăn tròn lăn quay',
     },
     {
       id: 3,
@@ -44,6 +53,8 @@ export default function V_ListAppointmentScreen({ navigation }) {
       startTime: '15:00',
       endTime: '16:30',
       status: 'Đã hủy',
+      petName: 'Mâu Ghẻ',
+      description: 'Cắn phá rụng răng',
     },
   ];
 
@@ -74,7 +85,15 @@ export default function V_ListAppointmentScreen({ navigation }) {
               bgrColor = '#DCDCDC';
 
             return (
-              <AppointmentCard key={item.id} {...item} backgroundColor={bgrColor} />
+              <AppointmentCard
+                key={item.id}
+                {...item}
+                backgroundColor={bgrColor}
+                onPress={() => {
+                  setModalVisible(true);
+                  setDataModal(item);
+                }}
+              />
             );
           })}
         </ScrollView>
@@ -87,19 +106,109 @@ export default function V_ListAppointmentScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+
+
+      {/* ========================================================================================================= */}
+      {/* Modal contains information of appointment */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => { setModalVisible(false) }}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Image style={styles.closeModal} source={require('../../assets/icons/V_closeModal.png')} />
+            </TouchableOpacity>
+            <Text style={styles.headingModal}>Thông tin lịch hẹn</Text>
+
+            <View style={[styles.clinic, styles.row]}>
+              <View style={styles.clinicImgView}>
+                <Image style={styles.clinicImgModal} source={require('../../assets/images/V_clinicAvatar2.png')}></Image>
+              </View>
+              <View style={styles.clinicInfo}>
+                <Text style={styles.name}>{dataModal.name}</Text>
+                {/* <Text style={styles.branch}>Cơ sở 1</Text> */}
+                <View style={[styles.address, styles.row]}>
+                  <Image style={styles.iconAddress} source={require('../../assets/icons/V_clinic-location.png')}></Image>
+                  <Text style={styles.textAddress}>{dataModal.address}</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={styles.subHeading}>Thông tin chi tiết</Text>
+            {/* information appt */}
+            <View style={[styles.card, styles.row]}>
+              <View style={styles.info}>
+                <Text style={styles.label}>Tên thú cưng</Text>
+                <Text style={styles.content}>{dataModal.petName}</Text>
+              </View>
+              <Image style={styles.petImg} source={require('../../assets/images/V_MyDieu-avatar.png')}></Image>
+            </View>
+            <View style={[styles.card, styles.row]}>
+              <View style={styles.info}>
+                <Text style={styles.label}>Ngày đặt</Text>
+                <Text style={styles.content}>{dataModal.createDate}</Text>
+              </View>
+            </View>
+            <View style={[styles.card, styles.row]}>
+              <View style={styles.info}>
+                <Text style={styles.label}>Ngày hẹn</Text>
+                <Text style={styles.content}>{dataModal.date}</Text>
+              </View>
+            </View>
+            <View style={[styles.card, styles.row]}>
+              <View style={styles.info}>
+                <Text style={styles.label}>Thời gian bắt đầu</Text>
+                <Text style={styles.content}>{dataModal.startTime}</Text>
+              </View>
+            </View>
+            <View style={[styles.card, styles.row]}>
+              <View style={styles.info}>
+                <Text style={styles.label}>Thời gian kết thúc</Text>
+                <Text style={styles.content}>{dataModal.endTime}</Text>
+              </View>
+            </View>
+            <View style={[styles.desCard, styles.row]}>
+              <View style={styles.info}>
+                <Text style={styles.label}>Mô tả</Text>
+                <Text style={styles.content}>{dataModal.description}</Text>
+              </View>
+            </View>
+
+            {dataModal.status === 'Đã đặt' && <CancelBtn onPress={() => {
+              Alert.alert('Hủy lịch hẹn', 'Bạn chắc chắn muốn hủy lịch hẹn này?', [
+                {
+                  text: 'Đóng',
+                  onPress: () => console.log('Cancel Pressed'),
+                  style: 'cancel',
+                },
+                {text: 'OK', onPress: () => /* cap nhat lai status thanh da huy */ console.log('OK Pressed')},
+              ]);          
+            }}
+            />}
+
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
+// Appointment Card Element
 const AppointmentCard = (prop) => {
   return (
-    <View style={styles.appointmentCard}>
+    <TouchableOpacity
+      style={styles.appointmentCard}
+      onPress={prop.onPress}
+    >
       <View style={[styles.appointmentHeader, styles.row]}>
         <Text style={styles.appointmentNum}>{prop.id}</Text>
-        <Text style={[styles.status, {backgroundColor: prop.backgroundColor}]}>{prop.status}</Text>
+        <Text style={[styles.status, { backgroundColor: prop.backgroundColor }]}>{prop.status}</Text>
       </View>
 
-      <TouchableOpacity style={[styles.appointmentInfo, styles.row]}>
+      <View style={[styles.appointmentInfo, styles.row]}>
         <View>
           <Image style={styles.clinicImg} source={require('../../assets/images/V_clinicAvatar2.png')}></Image>
         </View>
@@ -112,9 +221,19 @@ const AppointmentCard = (prop) => {
             <Text style={styles.formatText}>{prop.startTime} - {prop.endTime}</Text>
           </View>
         </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
+}
+
+const CancelBtn = (prop) => {
+  return (
+    <TouchableOpacity
+      style={styles.cancelBtn}
+      onPress={prop.onPress}>
+      <Text style={styles.textCancelBtn}>Hủy lịch hẹn</Text>
+    </TouchableOpacity>
+  )
 }
 
 const styles = StyleSheet.create({
@@ -216,7 +335,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   nameClinic: {
-    width: '88%',
+    maxWidth: '76%',
     color: '#442C2E',
     fontSize: 18,
     marginBottom: '2%',
@@ -250,4 +369,160 @@ const styles = StyleSheet.create({
   imgBtn: {
     resizeMode: 'contain',
   },
+
+  // ==================================================== Info Modal
+  modal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '91%',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFF6F6',
+  },
+  closeModal: {
+    position: 'absolute',
+    top: 8,
+    right: -8,
+    padding: 8,
+    resizeMode: 'cover',
+  },
+  headingModal: {
+    color: '#A51A29',
+    fontSize: 18,
+    fontFamily: 'lexend-semibold',
+    alignSelf: 'center',
+    marginVertical: '4%',
+  },
+  clinic: {
+    width: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#f9bebf',
+    borderRadius: 8,
+  },
+  clinicImgView: {
+    elevation: 6,
+
+    // add shadows for iOS only
+    shadowColor: 'black',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+
+    // fitting view with image
+    width: 66,
+    maxHeight: 66,
+    borderRadius: 32,
+    marginRight: 16,
+  },
+  clinicImgModal: {
+    width: 66,
+    maxHeight: 66,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    resizeMode: 'contain',
+    alignSelf: 'flex-start',
+  },
+  clinicInfo: {
+    width: '76%',
+    minHeight: 72,
+    paddingVertical: 2,
+    paddingLeft: 6,
+    marginLeft: -8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  name: {
+    width: '92%',
+    color: '#39A3C0',
+    fontSize: 16,
+    fontFamily: 'lexend-regular',
+  },
+  branch: {
+    color: '#39A3C0',
+    fontSize: 15,
+    fontFamily: 'lexend-light',
+  },
+  address: {
+    width: '92%',
+    marginTop: 2,
+  },
+  iconAddress: {
+    width: 18,
+    height: 18,
+    marginRight: 2,
+  },
+  textAddress: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  subHeading: {
+    color: '#333333',
+    fontSize: 16,
+    fontFamily: 'lexend-medium',
+    marginTop: 16,
+  },
+  card: {
+    width: '100%',
+    height: 60,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginTop: 8,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: '#f9bebf',
+  },
+  desCard: {
+    width: '100%',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginTop: 8,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: '#f9bebf',
+  },
+  info: {
+    justifyContent: 'space-between',
+  },
+  label: {
+    color: '#A51A29',
+    fontSize: 14,
+    fontFamily: 'lexend-medium',
+  },
+  content: {
+    fontSize: 14,
+    fontFamily: 'lexend-light',
+  },
+  petImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#f9bebf',
+    alignSelf: 'center',
+  },
+  cancelBtn: {
+    width: '72%',
+    alignSelf: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#A51A29',
+    marginTop: '4%',
+  },
+  textCancelBtn: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'lexend-medium',
+  }
 });
