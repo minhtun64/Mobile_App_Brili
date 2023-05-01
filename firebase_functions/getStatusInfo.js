@@ -40,7 +40,7 @@ const getStatusInfo = async (postId) => {
 
       for (const commentKey in commentsData) {
         const comment = commentsData[commentKey];
-        if (comment.post_id === postId) {
+        if (comment.post_id == postId) {
           commentedUsers.push({
             commentId: commentKey,
           });
