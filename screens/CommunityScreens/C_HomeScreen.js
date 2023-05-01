@@ -47,6 +47,7 @@ export default function C_HomeScreen({ navigation }) {
   const [recentPosts, setRecentPosts] = useState([]);
   const [cachedPostData, setCachedPostData] = useState({});
   const [likedPosts, setLikedPosts] = useState([]);
+
   const fetchRecentPosts = async () => {
     try {
       // Lấy danh sách bài đăng từ Firebase
@@ -58,10 +59,14 @@ export default function C_HomeScreen({ navigation }) {
           const dateB = moment(b.date, "DD-MM-YYYY HH:mm:ss");
           return dateB - dateA;
         });
+
         // Tạo một object mới để lưu trữ dữ liệu bài viết đã được caching
         const updatedCachedPostData = {};
         const statusPromises = sortedPosts.map(async (post) => {
-          const postId = post.id;
+          const postId = Object.keys(postsData).find(
+            (key) => postsData[key] === post
+          );
+
           // Kiểm tra xem bài viết đã tồn tại trong cachedPostData chưa
           if (cachedPostData[postId]) {
             // Nếu đã tồn tại, lấy dữ liệu từ cachedPostData
@@ -74,6 +79,7 @@ export default function C_HomeScreen({ navigation }) {
             return postInfo;
           }
         });
+
         const statusResults = await Promise.all(statusPromises);
         // Cập nhật dữ liệu bài viết gần đây và cachedPostData
         setRecentPosts(statusResults);
@@ -88,6 +94,7 @@ export default function C_HomeScreen({ navigation }) {
       console.error("Error retrieving recent posts:", error);
     }
   };
+
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       fetchRecentPosts();
