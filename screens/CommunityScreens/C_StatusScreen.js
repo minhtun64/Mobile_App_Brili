@@ -102,7 +102,6 @@ export default function C_StatusScreen({ navigation }) {
 
   //CẬP NHẬT REAL-TIME NỘI DUNG BÌNH LUẬN
   const [numCommentsDisplayed, setNumCommentsDisplayed] = useState(5);
-  const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
   //    Lấy thông tin người dùng từ Firebase
   const getUserInfo = async (userId) => {
     try {
@@ -170,12 +169,7 @@ export default function C_StatusScreen({ navigation }) {
     });
   }, [postId]);
   const handleLoadPreviousComments = () => {
-    const previousFive = commentedUsers.slice(
-      -numCommentsDisplayed - 5,
-      -numCommentsDisplayed
-    );
     setNumCommentsDisplayed(numCommentsDisplayed + 5);
-    setCommentedUsers([...previousFive, ...commentedUsers]);
   };
 
   // CUỘN XUỐNG ĐỂ CẬP NHẬT THÔNG TIN STATUS (KHÔNG REAL-TIME)
