@@ -238,6 +238,7 @@ export default function C_StatusScreen({ navigation }) {
 
   // XỬ LÝ COMMENT BÀI VIẾT
   const handleCommentSubmit = async (postId) => {
+    console.log(postId);
     let newCommentId = 1;
     const commentsSnapshot = await get(ref(database, "comment"));
     const commentsData = commentsSnapshot.val();
@@ -600,7 +601,7 @@ export default function C_StatusScreen({ navigation }) {
                 <View style={styles.row2}>
                   {statusInfo.likedUsers && (
                     <TouchableOpacity
-                      onPress={() => handleLikePost(statusInfo.postId, isLiked)}
+                      onPress={() => handleLikePost(postId, isLiked)}
                     >
                       <Image
                         style={styles.like}
@@ -789,9 +790,7 @@ export default function C_StatusScreen({ navigation }) {
             </View>
           </View>
           {(value || isSelected) && (
-            <TouchableOpacity
-              onPress={() => handleCommentSubmit(statusInfo.postId)}
-            >
+            <TouchableOpacity onPress={() => handleCommentSubmit(postId)}>
               <Image
                 style={styles.comment_send}
                 source={require("../../assets/icons/send.png")}
