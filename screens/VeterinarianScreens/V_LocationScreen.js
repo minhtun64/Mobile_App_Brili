@@ -1,6 +1,3 @@
-// Example of Searchable Dropdown / Picker in React Native
-// https://aboutreact.com/example-of-searchable-dropdown-picker-in-react-native/
-
 import React, { useState, useEffect } from 'react';
 import {
   Text,
@@ -100,7 +97,6 @@ export default function V_LocationScreen({ navigation }) {
               setSelectedProvince(item.name)
               setDistricts(item.districts)
             }}
-            selectedItems={selectedProvince}
             //onItemSelect called after the selection from the dropdown
             containerStyle={{ padding: 5 }}
             //suggestion container style
@@ -168,7 +164,6 @@ export default function V_LocationScreen({ navigation }) {
               setSelectedDistrict(item.name)
               setWards(item.wardsArr)
             }}
-            selectedItems={selectedDistrict}
             //onItemSelect called after the selection from the dropdown
             containerStyle={{ padding: 5 }}
             //suggestion container style
@@ -236,7 +231,6 @@ export default function V_LocationScreen({ navigation }) {
               if (selectedProvince !== null && selectedDistrict !== null && selectedWard !== null) 
                 setIsButtonDisabled(false);
             }}
-            selectedItems={selectedWard}
             //onItemSelect called after the selection from the dropdown
             containerStyle={{ padding: 5 }}
             //suggestion container style
@@ -300,7 +294,10 @@ export default function V_LocationScreen({ navigation }) {
         onLayout={onLayout}>
       </Image>
       <TouchableOpacity
-        style={styles.submitBtn}
+        style={[
+          styles.submitBtn, 
+          { backgroundColor: isButtonDisabled ? '#CCCCCC' : '#A51A29' }
+        ]}
         disabled={isButtonDisabled}
         onPress={() => navigation.navigate("V_ListVetClinic")}
       >
@@ -369,8 +366,8 @@ const styles = StyleSheet.create({
     width: '90%',
     alignSelf: 'center',
     backgroundColor: '#FFF6F6',
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: '2%',
+    paddingBottom: '4%',
     borderRadius: 36,
     borderWidth: 0.5,
     borderColor: '#F5817E',
@@ -383,7 +380,7 @@ const styles = StyleSheet.create({
   },
   addressLabel: {
     marginLeft: 24,
-    marginTop: 6,
+    marginTop: 2,
     fontSize: 13,
     fontFamily: 'lexend-semibold',
   },
@@ -393,7 +390,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: Dimensions.get("window").height * 0.05 + 16,
     alignSelf: 'center',
-    backgroundColor: '#A51A29',
   },
   textBtn: {
     fontSize: 16,
