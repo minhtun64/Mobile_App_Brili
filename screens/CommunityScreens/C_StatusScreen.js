@@ -61,7 +61,12 @@ import { Audio } from "expo-av";
 import { showMessage } from "react-native-flash-message";
 import CustomFlashMessage from "../../components/CustomFlashMessage";
 
+import EmojiSelector from "react-native-emoji-selector";
+import { Categories } from "react-native-emoji-selector";
+
 export default function C_StatusScreen({ navigation }) {
+  const myUserId = "10"; // VÍ DỤ
+
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
   useEffect(() => {
@@ -94,9 +99,10 @@ export default function C_StatusScreen({ navigation }) {
     formattedDate: route?.params?.formattedDate,
     likeCount: route?.params?.likeCount,
     commentCount: route?.params?.commentCount,
-    likedUsers: [],
+    likedUsers: route?.params?.likedUsers,
     commentedUsers: [],
   });
+
   const [commentedUsers, setCommentedUsers] = useState([]);
   const [isLiked, setIsLiked] = useState(route?.params?.isLiked);
 
@@ -148,7 +154,6 @@ export default function C_StatusScreen({ navigation }) {
                     userId: userId,
                     userName: likeUserData.name,
                     userAvatar: likeUserData.avatar,
-                    userIntro: likeUserData.intro,
                   });
                 }
               }
@@ -182,7 +187,7 @@ export default function C_StatusScreen({ navigation }) {
         })
         .catch((error) => console.log(error));
       setIsLiked(
-        statusInfo.likedUsers.some((user) => user.userId === "10") //VÍ DỤ ID USER HIỆN TẠI = 10
+        statusInfo.likedUsers.some((user) => user.userId === myUserId)
       );
     }
   };
@@ -196,17 +201,16 @@ export default function C_StatusScreen({ navigation }) {
   // XỬ LÝ LIKE BÀI VIẾT
   const handleLikePost = async (postId, isLiked) => {
     try {
-      const userId = "10"; // Thay thế bằng ID người dùng thực tế
       if (isLiked) {
         // Unlike the post
         const likesSnapshot = await get(
-          ref(database, `like/${postId}/${userId}`)
+          ref(database, `like/${postId}/${myUserId}`)
         );
         const likesData = likesSnapshot.val();
         for (const commentId in likesData) {
           if (commentId === "0") {
             await set(
-              ref(database, `like/${postId}/${userId}/${commentId}`),
+              ref(database, `like/${postId}/${myUserId}/${commentId}`),
               null
             );
           }
@@ -221,7 +225,7 @@ export default function C_StatusScreen({ navigation }) {
         const likeData = {
           date: moment().format("DD-MM-YYYY HH:mm:ss"),
         };
-        await set(ref(database, `like/${postId}/${userId}/0`), likeData);
+        await set(ref(database, `like/${postId}/${myUserId}/0`), likeData);
         // Phát âm thanh khi nhấn like
         const soundObject = new Audio.Sound();
         await soundObject.loadAsync(
@@ -276,6 +280,7 @@ export default function C_StatusScreen({ navigation }) {
     await set(ref(database, `comment/${newCommentId}`), newCommentData);
     setValue("");
     setIsSelected(false);
+    setShowEmojiSelector(false);
     scrollViewRef.current.scrollToEnd();
     const soundObject = new Audio.Sound();
     try {
@@ -422,6 +427,9 @@ export default function C_StatusScreen({ navigation }) {
     //
   };
 
+  // CHỌN EMOJI
+  const [showEmojiSelector, setShowEmojiSelector] = useState(false);
+
   if (!fontLoaded) {
     return null;
   }
@@ -566,6 +574,7 @@ export default function C_StatusScreen({ navigation }) {
                       opacity: showOptions ? 0.5 : 1,
                     }}
                     resizeMode="contain"
+                    // progressiveRenderingEnabled={true}
                   />
                   {/* Thông báo */}
                   <CustomFlashMessage />
@@ -617,13 +626,26 @@ export default function C_StatusScreen({ navigation }) {
                       ></Image>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("C_StatusLikedList")}
-                  >
-                    <Text style={styles.status_like_comment}>
-                      {statusInfo.likeCount} Lượt thích
-                    </Text>
-                  </TouchableOpacity>
+                  {statusInfo.likeCount !== 0 ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("C_StatusLikedList", {
+                          likedUsers: statusInfo.likedUsers,
+                        })
+                      }
+                    >
+                      <Text style={styles.status_like_comment}>
+                        {statusInfo.likeCount} Lượt thích
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View>
+                      <Text style={styles.status_like_comment}>
+                        {statusInfo.likeCount} Lượt thích
+                      </Text>
+                    </View>
+                  )}
+
                   <TouchableOpacity onPressIn={onPressInHandler}>
                     <Image
                       style={styles.comment}
@@ -733,6 +755,27 @@ export default function C_StatusScreen({ navigation }) {
       </ScrollView>
 
       {/* MỜI BÌNH LUẬN*/}
+      {showEmojiSelector && (
+        <EmojiSelector
+          onEmojiSelected={(emoji) => {
+            setValue(value + emoji);
+          }}
+          showSearchBar={false}
+          showHistory={false}
+          showSectionTitles={false}
+          buttonStyle={{ backgroundColor: "transparent" }}
+          buttonTextStyle={{ color: "#000" }}
+          columns={8}
+          rows={4}
+          emojiSize={24}
+          category={Categories.emotion}
+          positon="bottom"
+          onBackspacePress={() => {
+            setValue(value.slice(0, -1));
+          }}
+          onClose={() => setShowEmojiSelector(false)}
+        />
+      )}
       <View style={styles.mycomment}>
         <View style={styles.row7}>
           <TouchableOpacity>
@@ -742,6 +785,7 @@ export default function C_StatusScreen({ navigation }) {
               source={require("../../assets/images/myavatar.png")}
             ></Image>
           </TouchableOpacity>
+
           <View
             style={
               value || isSelected
@@ -796,8 +840,9 @@ export default function C_StatusScreen({ navigation }) {
                     source={require("../../assets/icons/image.png")}
                   ></Image>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                // onPress={toggleEmojiBoard}
+                  onPress={() => setShowEmojiSelector(!showEmojiSelector)}
                 >
                   <Image
                     style={styles.comment_media}

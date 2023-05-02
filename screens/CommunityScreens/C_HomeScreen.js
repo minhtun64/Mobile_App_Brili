@@ -22,6 +22,8 @@ import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
 
 export default function C_HomeScreen({ navigation }) {
+  const myUserId = "10"; // VÍ DỤ
+
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
   useEffect(() => {
@@ -85,8 +87,8 @@ export default function C_HomeScreen({ navigation }) {
         setRecentPosts(statusResults);
         setCachedPostData(updatedCachedPostData);
         // Kiểm tra các bài viết đã tải lên lần đầu để xác định những bài đã được người dùng hiện tại thích
-        const likedPosts = statusResults.filter(
-          (post) => post.likedUsers.some((user) => user.userId === "10") //VÍ DỤ ID USER HIỆN TẠI = 10
+        const likedPosts = statusResults.filter((post) =>
+          post.likedUsers.some((user) => user.userId === myUserId)
         );
         setLikedPosts(likedPosts);
       });
@@ -113,18 +115,17 @@ export default function C_HomeScreen({ navigation }) {
   // XỬ LÝ LIKE BÀI ĐĂNG
   const handleLikePost = async (postId, isLiked) => {
     try {
-      const userId = "10"; //VÍ DỤ ID USER HIỆN TẠI = 10
       if (isLiked) {
         // Unlike bài đăng
         const likesSnapshot = await get(
-          ref(database, `like/${postId}/${userId}`)
+          ref(database, `like/${postId}/${myUserId}`)
         );
         const likesData = likesSnapshot.val();
 
         for (const commentId in likesData) {
           if (commentId === "0") {
             await set(
-              ref(database, `like/${postId}/${userId}/${commentId}`),
+              ref(database, `like/${postId}/${myUserId}/${commentId}`),
               null
             );
           }
@@ -139,7 +140,7 @@ export default function C_HomeScreen({ navigation }) {
         const likeData = {
           date: moment().format("DD-MM-YYYY HH:mm:ss"),
         };
-        await set(ref(database, `like/${postId}/${userId}/0`), likeData);
+        await set(ref(database, `like/${postId}/${myUserId}/0`), likeData);
         // Thêm bài viết vào danh sách likedPosts
         const updatedLikedPosts = [...likedPosts, { postId }];
         setLikedPosts(updatedLikedPosts);
@@ -246,6 +247,7 @@ export default function C_HomeScreen({ navigation }) {
                     media: post.media,
                     formattedDate: post.formattedDate,
                     likeCount: post.likeCount,
+                    likedUsers: post.likedUsers,
                     commentCount: post.commentCount,
                     isLiked: isLiked,
                   })
