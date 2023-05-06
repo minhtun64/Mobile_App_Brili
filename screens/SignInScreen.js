@@ -7,6 +7,8 @@ import {
   Image,
   TextInput,
   Dimensions,
+  Keyboard,
+  Animated,
 } from "react-native";
 import React, {
   Component,
@@ -18,7 +20,7 @@ import React, {
 import { Ionicons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { releaseSecureAccess } from "react-native-document-picker";
-import { isWhiteSpaceLike } from "typescript";
+//import { isWhiteSpaceLike } from "typescript";
 
 const { height } = Dimensions.get("window");
 const { width } = Dimensions.get("window");
@@ -26,6 +28,42 @@ const { width } = Dimensions.get("window");
 export default function SignInScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(true);
+  const imageOpacity = useRef(new Animated.Value(1)).current;
+
+  // const [text, setText] = useState('');
+  // const [showImage, setShowImage] = useState(true);
+  // const handleFocus = () => {
+  //   setShowImage(false);
+  // };
+
+  // const handleBlur = () => {
+  //   setShowImage(true);
+  // };
+
+  // const handleInputChange = (inputText) => {
+  //   setText(inputText);
+  // };
+
+  // const handleInputFocus = () => {
+  //   Keyboard.addListener('keyboardDidShow', handleKeyboardShow);
+  //   Keyboard.addListener('keyboardDidHide', handleKeyboardHide);
+  //   setShowImage(false);
+  // };
+
+  // const handleInputBlur = () => {
+  //   Keyboard.removeListener('keyboardDidShow', handleKeyboardShow);
+  //   Keyboard.removeListener('keyboardDidHide', handleKeyboardHide);
+  //   setShowImage(true);
+  // };
+
+  // const handleKeyboardShow = () => {
+  //   setShowImage(false);
+  // };
+
+  // const handleKeyboardHide = () => {
+  //   setShowImage(true);
+  // };
+
   useEffect(() => {
     const loadFont = async () => {
       await Font.loadAsync({
@@ -44,6 +82,38 @@ export default function SignInScreen({ navigation }) {
     };
 
     loadFont();
+
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      () => {
+        Animated.timing(imageOpacity, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        Animated.timing(imageOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+
+    // return () => {
+    //   Keyboard.removeListener('keyboardDidShow', handleKeyboardShow);
+    //   Keyboard.removeListener('keyboardDidHide', handleKeyboardHide);
+    // };
   }, []);
   if (!fontLoaded) {
     return null; // or a loading spinner
@@ -55,38 +125,50 @@ export default function SignInScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image
-        style={styles.login_img}
+      {/* {showImage && ( */}
+      <Animated.Image
+        style={[styles.login_img, { opacity: imageOpacity }]}
         source={require("../assets/images/login.png")}
-      ></Image>
+      />
+      {/* )} */}
+
       <View style={styles.login_area}>
         <View style={styles.logo_area}>
           <Text style={styles.login_area_logo}>Chào mừng đến với</Text>
           <Image
             style={styles.logo_img}
             source={require("../assets/images/logo.png")}
-          ></Image>
+          />
           <Text style={styles.login_area_logo}>Cộng đồng yêu thú cưng</Text>
         </View>
         <View style={styles.login_area_text}>
           <View style={styles.login_area_text_label}>
-            <Image source={require("../assets/icons/sms1.png")}></Image>
-            <Text> Nhập email</Text>
+            <Image source={require("../assets/icons/sms1.png")} style={styles.icon}></Image>
+            <Text style={styles.font}> Nhập email</Text>
           </View>
-          <TextInput
-            style={styles.login_area_text_input}
-            placeholder="petcare@gmail.com"
-          ></TextInput>
+          <View style={styles.login_area_text_label}>
+            <TextInput
+              style={styles.login_area_text_input}
+              placeholder="petcare@gmail.com"
+              // onFocus={handleFocus}
+              // onBlur={handleBlur}
+            ></TextInput>
+          </View>
 
           <View style={styles.login_area_text_label}>
-            <Image source={require("../assets/icons/lock.png")}></Image>
-            <Text> Mật khẩu</Text>
+            <Image
+              source={require("../assets/icons/lock.png")}
+              style={styles.icon}
+            ></Image>
+            <Text style={styles.font}> Mật khẩu</Text>
           </View>
           <View style={styles.login_area_text_label}>
             <TextInput
               placeholder="Password"
               secureTextEntry={!showPassword}
               style={styles.login_area_text_input}
+              // onFocus={handleFocus}
+              // onBlur={handleBlur}
             ></TextInput>
             <TouchableOpacity
               onPress={togglePasswordVisibility}
@@ -107,14 +189,19 @@ export default function SignInScreen({ navigation }) {
           </View>
 
           <View style={styles.login_btn}>
-            {/* <TouchableOpacity
+            <TouchableOpacity
               style={styles.btn}
               onPress={() => navigation.navigate("HomeTabs")}
             >
-              <Text style={styles.opt}>Đăng nhập</Text>
-            </TouchableOpacity> */}
+              <Text style={styles.opt_login}>ĐĂNG NHẬP</Text>
+            </TouchableOpacity>
+          </View>
 
-            <Text>Hoặc tiếp tục với</Text>
+          <View style={styles.login_area_text_label_signup}>
+            <Text style={styles.font}> Tham gia cùng chúng tôi </Text>
+            <TouchableOpacity>
+              <Text style={styles.opt}>ngay tại đây!</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -150,7 +237,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 69,
     height: height,
     width: width,
-    position: "relative",
     top: height * 0.25,
   },
 
@@ -158,7 +244,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     top: height * 0.12,
-    position: "relative",
   },
 
   logo_img: {
@@ -178,20 +263,36 @@ const styles = StyleSheet.create({
     left: width * 0.1,
     paddingRight: width * 0.2,
     top: height * 0.12,
-    position: "relative",
     width: "100%",
   },
 
   login_area_text_label: {
     flexDirection: "row",
-    position: "relative",
+    paddingTop: 13,
+
+  },
+
+  font: {
+    fontSize: 14,
+    fontWeight: "light",
+    fontFamily: "lexend-light",
+    color: "black",
+  },
+
+  icon: {
+    height: 24,
+    width: 24,
   },
 
   login_area_text_input: {
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
     paddingBottom: 5,
-    paddingRight: 20,
+    width: "100%",
+    fontSize: 14,
+    fontWeight: "light",
+    fontFamily: "lexend-light",
+    color: "black",
   },
   icon_password: {
     //right: 0,
@@ -207,14 +308,22 @@ const styles = StyleSheet.create({
     color: "black",
   },
 
+  opt_login: {
+    fontSize: 14,
+    fontWeight: "medium",
+    fontFamily: "lexend-extrabold",
+    color: "white",
+  },
+
   forget_pass: {
     alignItems: "flex-end",
+    paddingTop: 15,
   },
 
   btn: {
     width: "100%",
     height: 55,
-    backgroundColor: "#195ABB",
+    backgroundColor: "#F5817E",
     // marginTop: 400,
     marginLeft: "auto",
     marginRight: "auto",
@@ -223,9 +332,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  login_btn:{
+  login_btn: {
     alignItems: "center",
     justifyContent: "center",
     color: "#FFFFFF",
+    paddingTop: 15,
+  },
+
+  login_area_text_label_signup: {
+    flexDirection: "row",
+    paddingTop: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
