@@ -58,13 +58,34 @@ export default function V_ListAppointmentScreen({ navigation }) {
     },
   ];
 
+  const [layout, setLayout] = useState({ width: 0, height: 0 });
+
+  const onLayout = (event) => {
+    const { width, height } = event.nativeEvent.layout;
+    setLayout({ width, height });
+  };
+
+  const { width, height } = layout;
+  const calHeight = width / 2.32;
+
   return (
     <View style={styles.container}>
       {/* banner */}
-      <View style={styles.bannerContainer}>
-        <Image style={styles.banner} source={require('../../assets/images/V_banner.png')}></Image>
-      </View>
-      <View style={styles.seperation}></View>
+      <Image
+          style={{
+            width: '90%',
+            height: calHeight,
+            resizeMode: 'contain',
+            marginRight: 'auto',
+            marginLeft: 'auto',
+            marginTop: 48,
+            marginBottom: 12,
+            borderRadius: 12,
+          }}
+          source={require('../../assets/images/V_banner.png')}
+          onLayout={onLayout} />
+
+        <View style={styles.seperation}></View>
 
       {/* appointment list */}
       <View style={styles.body}>
@@ -242,18 +263,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#FFF6F6',
   },
-  bannerContainer: {
-    width: '100%',
-    marginTop: 64,
-  },
-  banner: {
-    width: '90%',
-    resizeMode: 'cover',
-    marginRight: 'auto',
-    marginLeft: 'auto',
-    marginBottom: 12,
-    borderRadius: 12,
-  },
   seperation: {
     width: '100%',
     height: 12,
@@ -360,13 +369,15 @@ const styles = StyleSheet.create({
     fontFamily: 'lexend-light',
   },
   addBtn: {
-    alignSelf: 'flex-end',
     width: '12%',
+    height: '12%',
     position: 'absolute',
-    right: 16,
-    bottom: Dimensions.get("window").height * 0.1 + 16,
+    right: 12,
+    bottom: Dimensions.get("window").height * 0.1 + 8,
   },
   imgBtn: {
+    width: '100%',
+    height: '100%',
     resizeMode: 'contain',
   },
 

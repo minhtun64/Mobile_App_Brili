@@ -14,6 +14,7 @@ import {
   Platform,
   Dimensions,
   RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { requestMediaLibraryPermissionsAsync } from "expo-image-picker";
@@ -60,7 +61,12 @@ import { Audio } from "expo-av";
 import { showMessage } from "react-native-flash-message";
 import CustomFlashMessage from "../../components/CustomFlashMessage";
 
+import EmojiSelector from "react-native-emoji-selector";
+import { Categories } from "react-native-emoji-selector";
+
 export default function C_StatusScreen({ navigation }) {
+  const myUserId = "10"; // VÍ DỤ
+
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
   useEffect(() => {
@@ -93,13 +99,15 @@ export default function C_StatusScreen({ navigation }) {
     formattedDate: route?.params?.formattedDate,
     likeCount: route?.params?.likeCount,
     commentCount: route?.params?.commentCount,
-    likedUsers: [],
+    likedUsers: route?.params?.likedUsers,
     commentedUsers: [],
   });
+
   const [commentedUsers, setCommentedUsers] = useState([]);
   const [isLiked, setIsLiked] = useState(route?.params?.isLiked);
 
   //CẬP NHẬT REAL-TIME NỘI DUNG BÌNH LUẬN
+  const [numCommentsDisplayed, setNumCommentsDisplayed] = useState(5);
   //    Lấy thông tin người dùng từ Firebase
   const getUserInfo = async (userId) => {
     try {
@@ -124,49 +132,50 @@ export default function C_StatusScreen({ navigation }) {
       const commentsData = snapshot.val();
       if (commentsData) {
         const commentsArray = await Promise.all(
-          Object.keys(commentsData).map(async (commentId) => {
-            const commentData = commentsData[commentId];
-            if (commentData.post_id !== postId) {
-              return null;
-            }
-            const formattedCommentDate = formatDate(commentData.date);
-            const userInfo = await getUserInfo(commentData.user_id);
-            const likeRef = ref(
-              database,
-              `like/${commentData.post_id}/${commentData.user_id}/${commentId}`
-            );
-            const likeSnapshot = await get(likeRef);
-            const likeData = likeSnapshot.val();
-            const likeCount = Object.keys(likeData || {}).length;
-            const likedUsers = [];
-            for (const userId in likeData) {
-              const userLikes = likeData[userId];
-              for (const commentId in userLikes) {
-                const likeUserData = await getUserInfo(userId);
-                likedUsers.push({
-                  userId: userId,
-                  userName: likeUserData.name,
-                  userAvatar: likeUserData.avatar,
-                  userIntro: likeUserData.intro,
-                });
+          Object.keys(commentsData)
+            .filter((commentId) => commentsData[commentId].post_id === postId)
+            .map(async (commentId) => {
+              const commentData = commentsData[commentId];
+              const formattedCommentDate = formatDate(commentData.date);
+              const userInfo = await getUserInfo(commentData.user_id);
+              const likeRef = ref(
+                database,
+                `like/${commentData.post_id}/${commentData.user_id}/${commentId}`
+              );
+              const likeSnapshot = await get(likeRef);
+              const likeData = likeSnapshot.val();
+              const likeCount = Object.keys(likeData || {}).length;
+              const likedUsers = [];
+              for (const userId in likeData) {
+                const userLikes = likeData[userId];
+                for (const commentId in userLikes) {
+                  const likeUserData = await getUserInfo(userId);
+                  likedUsers.push({
+                    userId: userId,
+                    userName: likeUserData.name,
+                    userAvatar: likeUserData.avatar,
+                  });
+                }
               }
-            }
-            return {
-              commentId,
-              userAvatar: userInfo.avatar,
-              userName: userInfo.name,
-              content: commentData.content,
-              formattedDate: formattedCommentDate,
-              likeCount: likeCount,
-              media: commentData.media,
-              likedUsers: likedUsers,
-            };
-          })
+              return {
+                commentId,
+                userAvatar: userInfo.avatar,
+                userName: userInfo.name,
+                content: commentData.content,
+                formattedDate: formattedCommentDate,
+                likeCount: likeCount,
+                media: commentData.media,
+                likedUsers: likedUsers,
+              };
+            })
         );
-        setCommentedUsers(commentsArray.filter((comment) => comment !== null));
+        setCommentedUsers(commentsArray);
       }
     });
   }, [postId]);
+  const handleLoadPreviousComments = () => {
+    setNumCommentsDisplayed(numCommentsDisplayed + 5);
+  };
 
   // CUỘN XUỐNG ĐỂ CẬP NHẬT THÔNG TIN STATUS (KHÔNG REAL-TIME)
   const scrollViewRef = useRef(null);
@@ -177,9 +186,8 @@ export default function C_StatusScreen({ navigation }) {
           setStatusInfo(info);
         })
         .catch((error) => console.log(error));
-      console.log(statusInfo.likedUsers);
       setIsLiked(
-        statusInfo.likedUsers.some((user) => user.userId === "10") //VÍ DỤ ID USER HIỆN TẠI = 10
+        statusInfo.likedUsers.some((user) => user.userId === myUserId)
       );
     }
   };
@@ -193,17 +201,16 @@ export default function C_StatusScreen({ navigation }) {
   // XỬ LÝ LIKE BÀI VIẾT
   const handleLikePost = async (postId, isLiked) => {
     try {
-      const userId = 10; // Thay thế bằng ID người dùng thực tế
       if (isLiked) {
         // Unlike the post
         const likesSnapshot = await get(
-          ref(database, `like/${postId}/${userId}`)
+          ref(database, `like/${postId}/${myUserId}`)
         );
         const likesData = likesSnapshot.val();
         for (const commentId in likesData) {
           if (commentId === "0") {
             await set(
-              ref(database, `like/${postId}/${userId}/${commentId}`),
+              ref(database, `like/${postId}/${myUserId}/${commentId}`),
               null
             );
           }
@@ -218,7 +225,7 @@ export default function C_StatusScreen({ navigation }) {
         const likeData = {
           date: moment().format("DD-MM-YYYY HH:mm:ss"),
         };
-        await set(ref(database, `like/${postId}/${userId}/0`), likeData);
+        await set(ref(database, `like/${postId}/${myUserId}/0`), likeData);
         // Phát âm thanh khi nhấn like
         const soundObject = new Audio.Sound();
         await soundObject.loadAsync(
@@ -238,7 +245,6 @@ export default function C_StatusScreen({ navigation }) {
 
   // XỬ LÝ COMMENT BÀI VIẾT
   const handleCommentSubmit = async (postId) => {
-    console.log(postId);
     let newCommentId = 1;
     const commentsSnapshot = await get(ref(database, "comment"));
     const commentsData = commentsSnapshot.val();
@@ -248,10 +254,10 @@ export default function C_StatusScreen({ navigation }) {
       newCommentId = maxCommentId + 1;
     }
     const newCommentData = {
-      user_id: 10,
+      user_id: "10",
       content: value,
       date: moment().format("DD-MM-YYYY HH:mm:ss"),
-      comment_id: 0,
+      comment_id: "0",
       post_id: postId,
       media: null,
     };
@@ -274,6 +280,7 @@ export default function C_StatusScreen({ navigation }) {
     await set(ref(database, `comment/${newCommentId}`), newCommentData);
     setValue("");
     setIsSelected(false);
+    setShowEmojiSelector(false);
     scrollViewRef.current.scrollToEnd();
     const soundObject = new Audio.Sound();
     try {
@@ -420,6 +427,9 @@ export default function C_StatusScreen({ navigation }) {
     //
   };
 
+  // CHỌN EMOJI
+  const [showEmojiSelector, setShowEmojiSelector] = useState(false);
+
   if (!fontLoaded) {
     return null;
   }
@@ -433,6 +443,8 @@ export default function C_StatusScreen({ navigation }) {
       {/* heading */}
       <View style={styles.heading}></View>
       <ScrollView
+        // onScroll={handleScroll}
+        // scrollEventThrottle={16}
         style={styles.content}
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
@@ -562,6 +574,7 @@ export default function C_StatusScreen({ navigation }) {
                       opacity: showOptions ? 0.5 : 1,
                     }}
                     resizeMode="contain"
+                    // progressiveRenderingEnabled={true}
                   />
                   {/* Thông báo */}
                   <CustomFlashMessage />
@@ -613,13 +626,26 @@ export default function C_StatusScreen({ navigation }) {
                       ></Image>
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("C_StatusLikedList")}
-                  >
-                    <Text style={styles.status_like_comment}>
-                      {statusInfo.likeCount} Lượt thích
-                    </Text>
-                  </TouchableOpacity>
+                  {statusInfo.likeCount !== 0 ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("C_StatusLikedList", {
+                          likedUsers: statusInfo.likedUsers,
+                        })
+                      }
+                    >
+                      <Text style={styles.status_like_comment}>
+                        {statusInfo.likeCount} Lượt thích
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View>
+                      <Text style={styles.status_like_comment}>
+                        {statusInfo.likeCount} Lượt thích
+                      </Text>
+                    </View>
+                  )}
+
                   <TouchableOpacity onPressIn={onPressInHandler}>
                     <Image
                       style={styles.comment}
@@ -643,71 +669,85 @@ export default function C_StatusScreen({ navigation }) {
               {/* PHẦN BÀI ĐĂNG*/}
 
               {/* PHẦN BÌNH LUẬN*/}
-              {commentedUsers.map((commentedUser) => (
-                <View style={styles.row4} key={commentedUser.commentId}>
-                  <View style={styles.row5}>
-                    <TouchableOpacity
-                      onPress={() => navigation.navigate("C_Profile")}
-                    >
-                      {/* Avatar người bình luận */}
-                      <Image
-                        style={styles.avatar40}
-                        source={{ uri: commentedUser.userAvatar }}
-                      ></Image>
-                    </TouchableOpacity>
-                    <View>
-                      <View style={styles.comment_name_content}>
-                        <TouchableOpacity
-                          onPress={() => navigation.navigate("C_Profile")}
-                        >
-                          {/* Tên người bình luận */}
-                          <Text style={styles.comment_name}>
-                            {commentedUser.userName}
+              {numCommentsDisplayed < commentedUsers.length && (
+                <TouchableOpacity onPress={handleLoadPreviousComments}>
+                  <Text style={styles.pre_cmt_text}>
+                    Xem các bình luận trước...
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {commentedUsers
+                .slice(-numCommentsDisplayed)
+                .map((commentedUser) => (
+                  <View style={styles.row4} key={commentedUser.commentId}>
+                    <View style={styles.row5}>
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate("C_Profile")}
+                      >
+                        {/* Avatar người bình luận */}
+                        <Image
+                          style={styles.avatar40}
+                          source={{ uri: commentedUser.userAvatar }}
+                        ></Image>
+                      </TouchableOpacity>
+                      <View>
+                        <View style={styles.comment_name_content}>
+                          <TouchableOpacity
+                            onPress={() => navigation.navigate("C_Profile")}
+                          >
+                            {/* Tên người bình luận */}
+                            <Text style={styles.comment_name}>
+                              {commentedUser.userName}
+                            </Text>
+                          </TouchableOpacity>
+                          {/* Nội dung bình luận */}
+                          <Text
+                            style={styles.comment_content}
+                            selectable={true}
+                          >
+                            {commentedUser.content}
                           </Text>
-                        </TouchableOpacity>
-                        {/* Nội dung bình luận */}
-                        <Text style={styles.comment_content} selectable={true}>
-                          {commentedUser.content}
-                        </Text>
-                        {commentedUser.media && (
-                          <Image
-                            source={{ uri: commentedUser.media }}
-                            style={{
-                              width: 160,
-                              height: 160,
-                              borderRadius: 12,
-                              margin: 8,
-                            }}
-                          />
-                        )}
-                      </View>
-                      <View style={styles.row5}>
-                        {/* Thời gian bình luận */}
-                        <Text style={styles.comment_date}>
-                          {commentedUser.formattedDate}
-                        </Text>
-                        <TouchableOpacity>
-                          {/* Số người thích bình luận */}
-                          <Text style={styles.comment_option}>
-                            {commentedUser.likeCount} lượt thích
+                          {commentedUser.media && (
+                            <Image
+                              source={{ uri: commentedUser.media }}
+                              style={{
+                                width: 160,
+                                height: 160,
+                                borderRadius: 12,
+                                margin: 8,
+                              }}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.row5}>
+                          {/* Thời gian bình luận */}
+                          <Text style={styles.comment_date}>
+                            {commentedUser.formattedDate}
                           </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity>
-                          {/* Phản hồi bình luận */}
-                          <Text style={styles.comment_option}>Phản hồi</Text>
-                        </TouchableOpacity>
+                          <TouchableOpacity>
+                            {/* Số người thích bình luận */}
+                            <Text style={styles.comment_option}>
+                              {commentedUser.likeCount} lượt thích
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity>
+                            {/* Phản hồi bình luận */}
+                            <Text style={styles.comment_option}>Phản hồi</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
+                    <TouchableOpacity>
+                      {/* Tùy chọn Status */}
+                      <Image
+                        style={styles.comment_like}
+                        source={require("../../assets/icons/liked.png")}
+                      ></Image>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity>
-                    {/* Tùy chọn Status */}
-                    <Image
-                      style={styles.comment_like}
-                      source={require("../../assets/icons/liked.png")}
-                    ></Image>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                ))}
+
               {/* PHẦN BÌNH LUẬN*/}
             </View>
           )}
@@ -715,6 +755,27 @@ export default function C_StatusScreen({ navigation }) {
       </ScrollView>
 
       {/* MỜI BÌNH LUẬN*/}
+      {showEmojiSelector && (
+        <EmojiSelector
+          onEmojiSelected={(emoji) => {
+            setValue(value + emoji);
+          }}
+          showSearchBar={false}
+          showHistory={false}
+          showSectionTitles={false}
+          buttonStyle={{ backgroundColor: "transparent" }}
+          buttonTextStyle={{ color: "#000" }}
+          columns={8}
+          rows={4}
+          emojiSize={24}
+          category={Categories.emotion}
+          positon="bottom"
+          onBackspacePress={() => {
+            setValue(value.slice(0, -1));
+          }}
+          onClose={() => setShowEmojiSelector(false)}
+        />
+      )}
       <View style={styles.mycomment}>
         <View style={styles.row7}>
           <TouchableOpacity>
@@ -724,6 +785,7 @@ export default function C_StatusScreen({ navigation }) {
               source={require("../../assets/images/myavatar.png")}
             ></Image>
           </TouchableOpacity>
+
           <View
             style={
               value || isSelected
@@ -778,8 +840,9 @@ export default function C_StatusScreen({ navigation }) {
                     source={require("../../assets/icons/image.png")}
                   ></Image>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                // onPress={toggleEmojiBoard}
+                  onPress={() => setShowEmojiSelector(!showEmojiSelector)}
                 >
                   <Image
                     style={styles.comment_media}
@@ -844,6 +907,14 @@ const styles = StyleSheet.create({
     fontFamily: "lexend-medium",
     marginLeft: "6%",
     marginTop: -48,
+  },
+  pre_cmt_text: {
+    fontSize: 14,
+    color: "#878080",
+    fontFamily: "lexend-medium",
+    // marginLeft: "6%",
+    marginBottom: 8,
+    textDecorationLine: "underline",
   },
   footprint: {
     width: 38,
@@ -1103,5 +1174,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginLeft: 8,
     color: "#fff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "bold",
+    // Các thuộc tính kiểu dáng khác tùy ý
   },
 });

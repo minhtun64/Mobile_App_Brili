@@ -20,14 +20,25 @@ import React, {
   useLayoutEffect,
   useRef,
 } from "react";
-import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import {
+  useNavigation,
+  useScrollToTop,
+  useRoute,
+} from "@react-navigation/native";
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
 
+import { database } from "../../firebase";
+import { onValue, ref, get, set, push } from "firebase/database";
+
 export default function C_StatusLikedListScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const myUserId = "10"; // VÍ DỤ
+
+  const route = useRoute();
+  const [likedUsers, setLikedUsers] = useState(route?.params?.likedUsers || []);
 
   const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
 
@@ -59,10 +70,74 @@ export default function C_StatusLikedListScreen({ navigation }) {
     loadFont();
   }, []);
 
-  //Lưu ảnh
+  useEffect(() => {
+    const fetchData = async () => {
+      // Sắp xếp lại danh sách likedUsers
+      const sortedLikedUsers = likedUsers.sort((a, b) => {
+        if (a.userId.toString() === myUserId) {
+          return -1; // Đưa tài khoản của bạn lên đầu danh sách
+        } else if (b.userId.toString() === myUserId) {
+          return 1; // Đưa tài khoản của bạn lên đầu danh sách
+        } else {
+          return 0; // Giữ nguyên vị trí của các người dùng khác
+        }
+      });
+
+      const getLikedUsersInfo = async (likedUsers) => {
+        const usersInfo = await Promise.all(
+          likedUsers.map(async (user) => {
+            const userId = user.userId.toString();
+            const userRef = ref(database, `user/${userId}`);
+            const userSnapshot = await get(userRef);
+            const userData = userSnapshot.val();
+            const followRef = ref(database, `follow/${myUserId}/${userId}`);
+            const followSnapshot = await get(followRef);
+            const isFollowing = !!followSnapshot.exists();
+            return {
+              userId: userId,
+              userName: userData.name,
+              userAvatar: userData.avatar,
+              userIntro: userData.intro,
+              isFollowing: isFollowing,
+            };
+          })
+        );
+        return usersInfo;
+      };
+
+      const likedUsersInfo = await getLikedUsersInfo(sortedLikedUsers);
+      const updatedLikedUsers = sortedLikedUsers.map((user) => {
+        const userId = user.userId.toString();
+        const userInfo = likedUsersInfo.find((info) => info.userId === userId);
+        return {
+          userId: userId,
+          userName: userInfo.userName,
+          userAvatar: userInfo.userAvatar,
+          userIntro: userInfo.userIntro,
+          isFollowing: userInfo.isFollowing,
+        };
+      });
+      setLikedUsers(updatedLikedUsers);
+    };
+    fetchData();
+  }, [likedUsers]);
+
+  // XỬ LÝ CÁC THAO TÁC QUẸT MÀN HÌNH
+  const panResponder = useSwipe(
+    () => {
+      // console.log("swiped left")
+    },
+    () => navigation.goBack(),
+    () => {
+      // console.log("swiped up")
+    },
+    () => {
+      // console.log("swiped down")
+    }
+  );
 
   if (!fontLoaded) {
-    return null; // or a loading spinner
+    return null;
   }
 
   return (
@@ -72,8 +147,7 @@ export default function C_StatusLikedListScreen({ navigation }) {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        {...panResponder.panHandlers}
       >
         {/* Nút quay lại */}
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -88,32 +162,41 @@ export default function C_StatusLikedListScreen({ navigation }) {
           </View>
 
           <View style={styles.account_list}>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/myavatar.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
+            {/* NỘI DUNG NGƯỜI DÙNG */}
+            {likedUsers.map((user) => (
+              <View style={styles.row} key={user.userId}>
+                <View style={styles.row3}>
                   <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Đỗ Quỳnh Chi</Text>
+                    {/* Ảnh đại diện người dùng */}
+                    <Image
+                      style={styles.avatar60}
+                      source={{ uri: user.userAvatar }}
+                    ></Image>
                   </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>LOVE</Text>
+                  <View>
+                    <TouchableOpacity>
+                      {/* Tên người dùng */}
+                      <Text style={styles.account_name}>{user.userName}</Text>
+                    </TouchableOpacity>
+                    {/* Tiểu sử người dùng */}
+                    <Text style={styles.account_bio}>{user.userIntro}</Text>
+                  </View>
                 </View>
-              </View>
 
-              {/* Tùy chọn Follow */}
-              {/* <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity> */}
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
+                {/* Tùy chọn Follow */}
+                {user.userId !== myUserId &&
+                  (user.isFollowing ? (
+                    <TouchableOpacity style={styles.following_button}>
+                      <Text style={styles.follow_text}>Đang theo dõi</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={styles.follow_button}>
+                      <Text style={styles.follow_text}>Theo dõi</Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            ))}
+            {/* NỘI DUNG NGƯỜI DÙNG */}
           </View>
         </View>
       </ScrollView>
@@ -188,6 +271,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     margin: 8,
+    borderRadius: 50,
   },
   account_name: {
     fontSize: 16,
