@@ -22,23 +22,35 @@ import React, {
 } from "react";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import * as Font from "expo-font";
-
-import { useSwipe } from "../../hooks/useSwipe";
+import moment from "moment";
+import { database } from "../../firebase";
+import { onValue, ref, get, set, push } from "firebase/database";
 
 export default function C_StatusPostingScreen({ navigation }) {
+  const myUserId = "10"; // VÍ DỤ
+
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [avatar, setAvatar] = useState("");
+  const [name, setName] = useState("");
+  const [postIdList, setPostIdList] = useState([]);
 
-  const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
+  useEffect(() => {
+    const userRef = ref(database, `user/${myUserId}`);
+    onValue(userRef, (snapshot) => {
+      const data = snapshot.val();
+      setAvatar(data.avatar);
+      setName(data.name);
+    });
 
-  function onSwipeLeft() {
-    //navigation.goBack();
-  }
+    const postRef = ref(database, "post");
+    get(postRef).then((snapshot) => {
+      const data = snapshot.val();
+      const postIdList = Object.keys(data);
+      setPostIdList(postIdList);
+    });
+  }, []);
 
-  function onSwipeRight() {
-    navigation.goBack();
-  }
-
+  // CÀI ĐẶT FONT CHỮ
   useEffect(() => {
     const loadFont = async () => {
       await Font.loadAsync({
@@ -59,12 +71,31 @@ export default function C_StatusPostingScreen({ navigation }) {
     loadFont();
   }, []);
 
-  //Lưu ảnh
+  const [value, setValue] = useState("");
+  const [media, setMedia] = useState("");
+
+  const handlePost = () => {
+    if (value === "") {
+      return;
+    }
+
+    const maxPostId = Math.max(...postIdList);
+    const newPostId = maxPostId + 1;
+    const newPostRef = ref(database, `post/${newPostId}`);
+    const newPostData = {
+      user_id: myUserId,
+      content: value,
+      media: media,
+      date: moment().format("DD-MM-YYYY HH:mm:ss"),
+    };
+    set(newPostRef, newPostData);
+
+    navigation.navigate("C_Home");
+  };
 
   if (!fontLoaded) {
     return null; // or a loading spinner
   }
-
   return (
     <View style={styles.container}>
       {/* heading */}
@@ -75,27 +106,20 @@ export default function C_StatusPostingScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.post_button}
-            onPress={() => navigation.goBack()}
+            onPress={handlePost}
+            disabled={value === ""}
           >
             <Text style={styles.post}>Đăng</Text>
           </TouchableOpacity>
         </View>
       </View>
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.row3}>
           {/* Ảnh đại diện người đăng */}
-          <Image
-            style={styles.avatar40}
-            source={require("../../assets/images/avatar-1.png")}
-          ></Image>
+          <Image style={styles.avatar40} source={{ uri: avatar }}></Image>
           <View>
             {/* Tên người đăng */}
-            <Text style={styles.account_name}>Đỗ Quỳnh Chi</Text>
+            <Text style={styles.account_name}>{name}</Text>
             {/* Thời gian đăng */}
             <TouchableOpacity style={styles.set_public}>
               <View style={styles.row2}>
@@ -111,12 +135,9 @@ export default function C_StatusPostingScreen({ navigation }) {
         <TextInput
           style={styles.status_input}
           placeholder="Hôm nay tâm trạng thú cưng của bạn như thế nào?"
-          // value={value}
-          // onChangeText={setValue}
+          value={value}
+          onChangeText={setValue}
           multiline={true}
-          // onContentSizeChange={handleContentSizeChange}
-          // ref={textInputRef}
-          // onSubmitEditing={() => Keyboard.dismiss()}
         ></TextInput>
         <Image
           source={require("../../assets/images/background-posting-status.png")}
@@ -188,6 +209,7 @@ const styles = StyleSheet.create({
     height: 40,
     marginRight: 8,
     marginLeft: 16,
+    borderRadius: 50,
   },
   cancel: {
     fontSize: 16,
