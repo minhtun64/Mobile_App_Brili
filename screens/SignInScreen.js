@@ -18,7 +18,6 @@ import React, {
 import { Ionicons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { releaseSecureAccess } from "react-native-document-picker";
-import { isWhiteSpaceLike } from "typescript";
 
 const { height } = Dimensions.get("window");
 const { width } = Dimensions.get("window");
@@ -107,12 +106,12 @@ export default function SignInScreen({ navigation }) {
           </View>
 
           <View style={styles.login_btn}>
-            {/* <TouchableOpacity
+            <TouchableOpacity
               style={styles.btn}
               onPress={() => navigation.navigate("HomeTabs")}
             >
               <Text style={styles.opt}>Đăng nhập</Text>
-            </TouchableOpacity> */}
+            </TouchableOpacity>
 
             <Text>Hoặc tiếp tục với</Text>
           </View>
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  login_btn:{
+  login_btn: {
     alignItems: "center",
     justifyContent: "center",
     color: "#FFFFFF",

@@ -11,7 +11,11 @@ import {
   Modal,
   RefreshControl,
 } from "react-native";
-import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import {
+  useNavigation,
+  useScrollToTop,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { Audio } from "expo-av";
 import * as Font from "expo-font";
 import moment from "moment";
@@ -97,12 +101,11 @@ export default function C_HomeScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
+  useFocusEffect(
+    React.useCallback(() => {
       fetchRecentPosts();
-    });
-    return unsubscribe;
-  }, [navigation]);
+    }, [])
+  );
 
   // CUỘN XUỐNG ĐỂ CẬP NHẬT SỐ LƯỢNG LIKE/COMMENT (KHÔNG REAL-TIME)
   const [refreshing, setRefreshing] = useState(false);
@@ -255,8 +258,14 @@ export default function C_HomeScreen({ navigation }) {
               >
                 <View style={styles.row}>
                   <View style={styles.row2}>
-                    <TouchableOpacity>
-                      {/* Avatar người đăng */}
+                    {/* Avatar người đăng */}
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("C_Profile", {
+                          userId: post.userId,
+                        })
+                      }
+                    >
                       <Image
                         style={styles.avatar50}
                         source={{ uri: post.userAvatar }}
@@ -285,13 +294,17 @@ export default function C_HomeScreen({ navigation }) {
                 <Text style={styles.status_content} selectable={true}>
                   {post.content}
                 </Text>
+
                 {/* Ảnh/Video Status */}
-                <TouchableOpacity>
-                  <Image
-                    style={styles.status_image}
-                    source={{ uri: post.media }}
-                  />
-                </TouchableOpacity>
+                {post.media && (
+                  <TouchableOpacity>
+                    <Image
+                      style={styles.status_image}
+                      source={{ uri: post.media }}
+                    />
+                  </TouchableOpacity>
+                )}
+
                 {/* Like / Comment / Share */}
                 <View style={styles.row}>
                   <View style={styles.row2}>
@@ -480,8 +493,8 @@ const styles = StyleSheet.create({
     fontFamily: "SF-Pro-Display",
     textAlign: "left",
     alignSelf: "flex-start",
-    marginLeft: 8,
-    marginRight: 8,
+    marginLeft: 16,
+    marginRight: 16,
     marginBottom: 8,
   },
   status_image: {

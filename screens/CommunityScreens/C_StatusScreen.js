@@ -507,13 +507,16 @@ export default function C_StatusScreen({ navigation }) {
               <Text style={styles.status_content} selectable={true}>
                 {statusInfo.content}
               </Text>
+
               {/* Ảnh/Video Status */}
-              <TouchableOpacity onPress={() => setModalVisible(true)}>
-                <Image
-                  style={styles.status_image}
-                  source={{ uri: statusInfo.media }}
-                />
-              </TouchableOpacity>
+              {statusInfo.media && (
+                <TouchableOpacity onPress={() => setModalVisible(true)}>
+                  <Image
+                    style={styles.status_image}
+                    source={{ uri: statusInfo.media }}
+                  />
+                </TouchableOpacity>
+              )}
 
               <Modal
                 animationType="slide"
@@ -742,7 +745,7 @@ export default function C_StatusScreen({ navigation }) {
                       {/* Tùy chọn Status */}
                       <Image
                         style={styles.comment_like}
-                        source={require("../../assets/icons/liked.png")}
+                        source={require("../../assets/icons/like.png")}
                       ></Image>
                     </TouchableOpacity>
                   </View>
@@ -975,8 +978,8 @@ const styles = StyleSheet.create({
     fontFamily: "SF-Pro-Display",
     textAlign: "left",
     alignSelf: "flex-start",
-    marginLeft: 8,
-    marginRight: 8,
+    marginLeft: 16,
+    marginRight: 16,
     marginBottom: 8,
   },
   status_image: {

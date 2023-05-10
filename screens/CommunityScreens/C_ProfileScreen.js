@@ -21,35 +21,29 @@ import React, {
   useLayoutEffect,
   useRef,
 } from "react";
-import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import {
+  useNavigation,
+  useScrollToTop,
+  useRoute,
+} from "@react-navigation/native";
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
 import { AntDesign } from "@expo/vector-icons";
 
+import { storage, database } from "../../firebase";
+import { getDatabase, set, push, ref, get, onValue } from "firebase/database";
+
 export default function C_ProfileScreen({ navigation }) {
+  const myUserId = "10"; // VÍ DỤ
+
+  // LẤY THAM SỐ ĐƯỢC TRUYỀN TỪ MÀN HÌNH TRƯỚC
+  const route = useRoute();
+  const userId = route?.params?.userId;
+  console.log(userId);
+
+  // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [hasSubmittedQuery, setHasSubmittedQuery] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const [iconStatus, setIconStatus] = useState(false);
-
-  const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
-
-  const [showPetInfo, setShowPetInfo] = useState(false);
-
-  const openPetInfo = () => setShowPetInfo(true);
-  const closePetInfo = () => setShowPetInfo(false);
-
-  function onSwipeLeft() {
-    //navigation.goBack();
-  }
-
-  function onSwipeRight() {
-    navigation.goBack();
-  }
-
   useEffect(() => {
     const loadFont = async () => {
       await Font.loadAsync({
@@ -66,14 +60,109 @@ export default function C_ProfileScreen({ navigation }) {
       });
       setFontLoaded(true);
     };
-
     loadFont();
   }, []);
 
-  if (!fontLoaded) {
-    return null; // or a loading spinner
-  }
+  const [modalVisible, setModalVisible] = useState(false);
+  const [iconStatus, setIconStatus] = useState(false);
+  const [showPetInfo, setShowPetInfo] = useState(false);
+  const openPetInfo = () => setShowPetInfo(true);
+  const closePetInfo = () => setShowPetInfo(false);
 
+  const [name, setName] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [wallpaper, setWallpaper] = useState("");
+  const [intro, setIntro] = useState("");
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [pets, setPets] = useState([]);
+
+  useEffect(() => {
+    // Load user data
+    const nameRef = ref(database, `user/${userId}/name`);
+    const avatarRef = ref(database, `user/${userId}/avatar`);
+    const wallpaperRef = ref(database, `user/${userId}/wallpaper`);
+    const introRef = ref(database, `user/${userId}/intro`);
+
+    get(nameRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const name = snapshot.val();
+          setName(name);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
+    get(avatarRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const avatarUrl = snapshot.val();
+          setAvatar(avatarUrl);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
+    get(wallpaperRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const wallpaperUrl = snapshot.val();
+          setWallpaper(wallpaperUrl);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
+    get(introRef)
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const introText = snapshot.val();
+          setIntro(introText);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
+    // Load follower and following counts
+    const followingRef = ref(database, `follow/${userId}`);
+    const followerRef = ref(database, `follow`);
+
+    // onValue(followingRef, (snapshot) => {
+    //   const followingCount = snapshot.numChildren();
+    //   setFollowingCount(followingCount);
+    // });
+
+    // onValue(followerRef, (snapshot) => {
+    //   let followerCount = 0;
+    //   snapshot.forEach((childSnapshot) => {
+    //     if (childSnapshot.key === userId) {
+    //       followerCount = childSnapshot.numChildren();
+    //     }
+    //   });
+    //   setFollowerCount(followerCount);
+    // });
+
+    // Load pets
+    const petRef = ref(database, `pet/${userId}`);
+
+    onValue(petRef, (snapshot) => {
+      const pets = [];
+      snapshot.forEach((childSnapshot) => {
+        const pet = childSnapshot.val();
+        pets.push(pet);
+      });
+      setPets(pets);
+    });
+  }, []);
+
+  if (!fontLoaded) {
+    return null;
+  }
   return (
     <View style={styles.container}>
       {/* heading */}
@@ -85,7 +174,7 @@ export default function C_ProfileScreen({ navigation }) {
               source={require("../../assets/icons/chevron-left.png")}
             ></Image>
           </TouchableOpacity>
-          <Text style={styles.text}>Lê Hoàng Sơn</Text>
+          <Text style={styles.text}>{name}</Text>
           <TouchableOpacity onPress={() => navigation.navigate("C_Status")}>
             <Image
               style={styles.search}
@@ -94,37 +183,34 @@ export default function C_ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View
           style={{
             width: Dimensions.get("window").width,
             height: 142,
           }}
         >
-          <Image
-            source={require("../../assets/images/wallpaper-1.png")}
-            style={{
-              width: "100%",
-              height: "100%",
-            }}
-            resizeMode="contain"
-          />
+          {wallpaper && (
+            <Image
+              source={{ uri: wallpaper }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              // resizeMode="contain"
+            />
+          )}
+
           <TouchableOpacity style={{ position: "absolute", top: 4, right: 4 }}>
             <AntDesign name="ellipsis1" size={24} color="white" />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity>
-          <Image
-            style={styles.avatar100}
-            source={require("../../assets/images/avatar-2.png")}
-          ></Image>
-        </TouchableOpacity>
+        {avatar && (
+          <TouchableOpacity>
+            <Image style={styles.avatar100} source={{ uri: avatar }}></Image>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.row4}>
           <TouchableOpacity style={styles.chat_border}>
             <Image
@@ -137,17 +223,15 @@ export default function C_ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
         <View style={styles.info}>
-          <Text style={styles.account_name}>Lê Hoàng Sơn</Text>
-          <Text style={styles.account_bio}>
-            The cashier of the memory bank!
-          </Text>
+          <Text style={styles.account_name}>{name}</Text>
+          <Text style={styles.account_bio}>{intro}</Text>
           {/* Like / Comment / Share */}
           <View style={styles.row3}>
             <TouchableOpacity
               onPress={() => navigation.navigate("C_FollowingList")}
             >
               <View style={styles.row3}>
-                <Text style={styles.following_count}>3.404</Text>
+                <Text style={styles.following_count}>{followingCount}</Text>
                 <Text style={styles.following_count_text}> Đang theo dõi</Text>
               </View>
             </TouchableOpacity>
@@ -155,7 +239,7 @@ export default function C_ProfileScreen({ navigation }) {
               onPress={() => navigation.navigate("C_FollowedList")}
             >
               <View style={styles.row3}>
-                <Text style={styles.followed_count}>422</Text>
+                <Text style={styles.followed_count}>{followerCount}</Text>
                 <Text style={styles.followed_count_text}> Người theo dõi</Text>
               </View>
             </TouchableOpacity>
@@ -164,221 +248,54 @@ export default function C_ProfileScreen({ navigation }) {
 
         <View style={styles.pet_frame}>
           <View style={styles.row3}>
-            <TouchableOpacity
-              style={{
-                marginRight: 8,
-                marginLeft: 8,
-              }}
-              onPress={() => setModalVisible(true)}
-            >
-              <Image
-                style={styles.pet_img}
-                source={require("../../assets/images/pet-1-1.png")}
-              ></Image>
-              <View
-                style={StyleSheet.flatten([
-                  styles.row3,
-                  {
-                    alignSelf: "center",
-                    backgroundColor: "#ffffff",
-                    paddingTop: 4,
-                    marginTop: 8,
-                    padding: 4,
-                    borderRadius: 12,
-                  },
-                ])}
+            {pets.map((pet, index) => (
+              <TouchableOpacity
+                key={index}
+                style={{
+                  marginRight: 8,
+                  marginLeft: 8,
+                }}
+                onPress={() => setModalVisible(true)}
               >
-                <Image
+                {pet.avatar && (
+                  <Image
+                    style={styles.pet_img}
+                    source={{ uri: pet.avatar }}
+                  ></Image>
+                )}
+
+                <View
                   style={StyleSheet.flatten([
-                    styles.chat,
+                    styles.row3,
                     {
-                      marginRight: 4,
+                      alignSelf: "center",
+                      backgroundColor: "#ffffff",
+                      paddingTop: 4,
+                      marginTop: 8,
+                      padding: 4,
+                      borderRadius: 12,
                     },
                   ])}
-                  source={require("../../assets/images/icon-hamster.png")}
-                ></Image>
-                <Text
-                  style={{
-                    fontFamily: "lexend-regular",
-                  }}
                 >
-                  Bé dâu
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Pop up */}
-            <Modal
-              // animationType="slide"
-              transparent={true}
-              visible={modalVisible}
-              onRequestClose={() => {
-                setModalVisible(false);
-              }}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                style={{
-                  flex: 1,
-                  backgroundColor: "rgba(0, 0, 0, 0.5)",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                onPress={() => {
-                  setModalVisible(false);
-                }}
-              >
-                {/* Hình ảnh sẽ hiển thị trong Modal */}
-                <View
-                  style={{
-                    width: "100%",
-                    height: 300,
-                    backgroundColor: "#FFF6F6",
-                    marginTop: -40,
-                    borderRadius: 24,
-                  }}
-                >
-                  {/* Icon để đóng Modal */}
-                  <TouchableOpacity
+                  <Image
+                    style={StyleSheet.flatten([
+                      styles.chat,
+                      {
+                        marginRight: 4,
+                      },
+                    ])}
+                    source={require("../../assets/images/icon-hamster.png")}
+                  ></Image>
+                  <Text
                     style={{
-                      position: "absolute",
-                      top: 28,
-                      right: 20,
-                      zIndex: 1,
-                    }}
-                    onPress={() => {
-                      closePetInfo();
-                      setModalVisible(false);
+                      fontFamily: "lexend-regular",
                     }}
                   >
-                    <Image
-                      source={require("../../assets/icons/close-red.png")}
-                      style={{ width: 30, height: 30 }}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Icon Chuyển trái/phải */}
-                  <TouchableOpacity
-                    style={{
-                      position: "absolute",
-                      top: 150,
-                      left: 4,
-                      zIndex: 1,
-                    }}
-                    onPress={() => {
-                      closePetInfo();
-                      setModalVisible(false);
-                    }}
-                  >
-                    <Image
-                      source={require("../../assets/icons/arrow-left.png")}
-                      style={{ width: 30, height: 30 }}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      position: "absolute",
-                      top: 150,
-                      right: 4,
-                      zIndex: 1,
-                    }}
-                    onPress={() => {
-                      closePetInfo();
-                      setModalVisible(false);
-                    }}
-                  >
-                    <Image
-                      source={require("../../assets/icons/arrow-right.png")}
-                      style={{ width: 30, height: 30 }}
-                    />
-                  </TouchableOpacity>
-
-                  <View style={styles.row7}>
-                    <View
-                      style={{
-                        width: 220,
-                        height: 200,
-                        backgroundColor: "#ffffff",
-                        borderRadius: 12,
-                        marginRight: 16,
-                      }}
-                    >
-                      <Text style={styles.pet_name}>Bé Dâu</Text>
-                      <View style={styles.row3}>
-                        <Text style={styles.pet_pro}>Loài: </Text>
-                        <Text style={styles.pet_pro_val}>Hamster</Text>
-                      </View>
-                      <View style={styles.row3}>
-                        <Text style={styles.pet_pro}>Giống: </Text>
-                        <Text style={styles.pet_pro_val}>Winter White</Text>
-                      </View>
-                      <View style={styles.row3}>
-                        <Text style={styles.pet_pro}>Giới tính: </Text>
-                        <Text style={styles.pet_pro_val}>Cái</Text>
-                      </View>
-                      <View style={styles.row3}>
-                        <Text style={styles.pet_pro}>Tuổi: </Text>
-                        <Text style={styles.pet_pro_val}>1</Text>
-                      </View>
-                      <View style={styles.row3}>
-                        <Text style={styles.pet_pro}>Cân nặng: </Text>
-                        <Text style={styles.pet_pro_val}>0.3 kg</Text>
-                      </View>
-                      <View style={styles.row3}>
-                        <Text style={styles.pet_pro}>Màu lông: </Text>
-                        <Text style={styles.pet_pro_val}>Xám trắng</Text>
-                      </View>
-                    </View>
-                    <Image
-                      style={styles.pet_img}
-                      source={require("../../assets/images/pet-1-1.png")}
-                    ></Image>
-                  </View>
+                    {pet.name}
+                  </Text>
                 </View>
               </TouchableOpacity>
-            </Modal>
-
-            <TouchableOpacity
-              style={{
-                marginRight: 8,
-                marginLeft: 8,
-              }}
-            >
-              <Image
-                style={styles.pet_img}
-                source={require("../../assets/images/pet-1-1.png")}
-              ></Image>
-              <View
-                style={StyleSheet.flatten([
-                  styles.row3,
-                  {
-                    alignSelf: "center",
-                    backgroundColor: "#ffffff",
-                    paddingTop: 4,
-                    marginTop: 8,
-                    padding: 4,
-                    borderRadius: 12,
-                  },
-                ])}
-              >
-                <Image
-                  style={StyleSheet.flatten([
-                    styles.chat,
-                    {
-                      marginRight: 4,
-                    },
-                  ])}
-                  source={require("../../assets/images/icon-hamster.png")}
-                ></Image>
-                <Text
-                  style={{
-                    fontFamily: "lexend-regular",
-                  }}
-                >
-                  Bé dâu
-                </Text>
-              </View>
-            </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -426,14 +343,16 @@ export default function C_ProfileScreen({ navigation }) {
             </View>
             {/* Nội dung Status */}
             <Text style={styles.status_content} selectable={true}>
-              Good morning!!! {"\u2764"}
+              {"\u2764"}
+              {"\u2764"}
+              {"\u2764"}
               {"\u2601"}
             </Text>
             {/* Ảnh / Video Status */}
             <TouchableOpacity>
               <Image
                 style={styles.status_image}
-                source={require("../../assets/images/status-1.png")}
+                source={require("../../assets/images/status-3.png")}
               />
             </TouchableOpacity>
             {/* Like / Comment / Share */}
@@ -473,80 +392,6 @@ export default function C_ProfileScreen({ navigation }) {
             </View>
           </TouchableOpacity>
           {/* NỘI DUNG MỘT STATUS */}
-
-          {/* NỘI DUNG MỘT STATUS */}
-          <View style={styles.status}>
-            <View style={styles.row6}>
-              <View style={styles.row5}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người đăng */}
-                  <Image
-                    style={styles.avatar50}
-                    source={require("../../assets/images/avatar-2.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người đăng */}
-                    <Text style={styles.status_name}>Lê Hoàng Sơn</Text>
-                  </TouchableOpacity>
-                  {/* Thời gian đăng */}
-                  <Text style={styles.status_date}>4 giờ trước</Text>
-                </View>
-              </View>
-              <TouchableOpacity>
-                {/* Tùy chọn Status */}
-                <Image
-                  style={styles.status_option}
-                  source={require("../../assets/icons/option.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-
-            {/* Nội dung Status */}
-            <Text style={styles.status_content} selectable={true}>
-              Good morning!!! {"\u{2764}"}
-              {"\u{2601}"}
-            </Text>
-
-            {/* Ảnh / Video Status */}
-            <TouchableOpacity>
-              <Image
-                style={styles.status_image}
-                source={require("../../assets/images/status-1.png")}
-              />
-            </TouchableOpacity>
-
-            {/* Like / Comment / Share */}
-            <View style={styles.row6}>
-              <View style={styles.row5}>
-                <TouchableOpacity>
-                  <Image
-                    style={styles.like}
-                    source={require("../../assets/icons/like.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <Text>12</Text>
-                <TouchableOpacity>
-                  <Image
-                    style={styles.comment}
-                    source={require("../../assets/icons/comment.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <Text>3</Text>
-              </View>
-              <TouchableOpacity>
-                <Image
-                  style={styles.share}
-                  source={require("../../assets/icons/share.png")}
-                ></Image>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {/* NỘI DUNG MỘT STATUS */}
-
-          <View style={styles.status}></View>
-          <View style={styles.status}></View>
         </View>
         {/* BÀI VIẾT */}
       </ScrollView>
@@ -651,6 +496,7 @@ const styles = StyleSheet.create({
     height: 40,
     marginRight: 8,
     marginLeft: 16,
+    borderRadius: 50,
   },
   post: {
     color: "#ffffff",
@@ -803,6 +649,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     margin: 8,
+    borderRadius: 50,
   },
   following_count: {
     fontSize: 14,
@@ -847,14 +694,14 @@ const styles = StyleSheet.create({
     fontFamily: "SF-Pro-Display",
     textAlign: "left",
     alignSelf: "flex-start",
-    marginLeft: 8,
-    marginRight: 8,
+    marginLeft: 16,
+    marginRight: 16,
     marginBottom: 8,
   },
   status_image: {
     width: 320,
     height: 180,
-    resizeMode: "contain",
+    // resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
     borderRadius: 12,
