@@ -62,7 +62,7 @@ Follow the steps below to install and set up the PetCare mobile app:
 1. Clone the repository:
 
   ```
-   git clone https://github.com/minhtun64/Mobile_App_Brili.git
+   git clone https://github.com/minhtun64/PetCare-app.git
   ```
 2. Navigate to the project directory:
   ```
