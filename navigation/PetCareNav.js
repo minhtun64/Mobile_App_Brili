@@ -34,6 +34,8 @@ import V_ListAppointmentScreen from "../screens/VeterinarianScreens/V_ListAppoin
 import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
 
 import M_MessagesScreen from "../screens/MessageScreens/M_MessagesScreen";
+import M_ChatScreen from "../screens/MessageScreens/M_ChatScreen";
+
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
@@ -148,6 +150,7 @@ function MessageStackNavigator() {
   return (
     <MessageStack.Navigator screenOptions={{ headerShown: false }}>
       <MessageStack.Screen name="M_Messages" component={M_MessagesScreen} />
+      <MessageStack.Screen name="M_Chat" component={M_ChatScreen} />
     </MessageStack.Navigator>
   );
 }

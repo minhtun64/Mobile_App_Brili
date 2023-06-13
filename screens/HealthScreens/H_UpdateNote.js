@@ -16,7 +16,7 @@ import * as Font from "expo-font";
 import {LocaleConfig} from 'react-native-calendars';
 import { Calendar } from 'react-native-calendars';
 import React, { Component , useCallback, useEffect, useState,useRef, } from "react";
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+// import DateTimePickerModal from 'react-native-modal-datetime-picker';
 const NOTEBOOK = "NOTEBOOK";
 const HANDBOOK = "HANDBOOK";
 export default function H_NoteScreen({ navigation }) {
@@ -244,12 +244,12 @@ export default function H_NoteScreen({ navigation }) {
                         source={require("../../assets/icons/clock.png")}
                       ></Image>
                     </TouchableOpacity>
-                    <DateTimePickerModal
+                    {/* <DateTimePickerModal
                       isVisible={isTimePickerVisible}
                       mode="time"
                       onConfirm={handleTimeConfirm}
                       onCancel={hideTimePicker}
-                    />
+                    /> */}
                     {selectedTime ? (
                       <Text style={styles.descriptionTask}>
                       {selectedTime}
