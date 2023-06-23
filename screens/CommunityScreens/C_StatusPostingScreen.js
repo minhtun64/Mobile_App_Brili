@@ -143,6 +143,32 @@ export default function C_StatusPostingScreen({ navigation }) {
           source={require("../../assets/images/background-posting-status.png")}
           style={styles.background}
         ></Image>
+        <View style={styles.row2}>
+          <TouchableOpacity
+            // style={styles.post_media_button}
+            onPress={pickImage}
+          >
+            <ImageBackground
+              source={require("../../assets/images/post_image.jpg")}
+              style={styles.post_media}
+              borderRadius={10}
+            >
+              <Text style={styles.label}>Chọn Ảnh</Text>
+            </ImageBackground>
+          </TouchableOpacity>
+          <TouchableOpacity
+            // style={styles.post_media_button}
+            onPress={pickVideo}
+          >
+            <ImageBackground
+              source={require("../../assets/images/post-image.gif")}
+              style={styles.post_media}
+              borderRadius={10}
+            >
+              <Text style={styles.label}>Chọn Video</Text>
+            </ImageBackground>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -241,7 +267,7 @@ const styles = StyleSheet.create({
     // height: "100%",
     marginLeft: "auto",
     marginRight: "auto",
-    marginTop: "40%",
+    marginTop: "10%",
   },
   account_name: {
     fontSize: 16,
@@ -273,5 +299,19 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
     fontFamily: "lexend-regular",
+  },
+  post_media: {
+    width: 150,
+    height: 100,
+    marginRight: 30,
+    marginLeft: 30,
+  },
+  label: {
+    color: "white",
+    fontFamily: "lexend-regular",
+    marginTop: 76,
+    fontSize: 18,
+    marginLeft: "auto",
+    marginRight: "auto",
   },
 });
