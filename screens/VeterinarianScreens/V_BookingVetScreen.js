@@ -8,71 +8,75 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CalendarStrip from 'react-native-calendar-strip';
+import { database } from "../../firebase";
+import { ref, get } from "firebase/database";
 
-export default function V_BookingVetScreen({ navigation }) {
+export default function V_BookingVetScreen({ navigation, route }) {
+  const { clinicId, clinicName, clinicAddress, clinicAvatar } = route.params;
+  const myUserID = 10;
+
   const [timeId, setTimeId] = useState();
   const [petId, setPetId] = useState();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [timeList, setTimeList] = useState([]);
+  const [petList, setPetList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const handleDateSelected = (date) => {
+    const selectedDate = new Date(date);
+    setSelectedDate(selectedDate);
+  };
 
-  const timeArr = [
-    {
-      id: 1,
-      startTime: '9:00',
-      endTime: '10:30',
-      slotEmpty: 3
-    },
-    {
-      id: 2,
-      startTime: '10:30',
-      endTime: '12:00',
-      slotEmpty: 0
-    },
-    {
-      id: 3,
-      startTime: '12:00',
-      endTime: '13:30',
-      slotEmpty: 5
-    },
-    {
-      id: 4,
-      startTime: '13:30',
-      endTime: '15:00',
-      slotEmpty: 7
-    },
-    {
-      id: 5,
-      startTime: '15:00',
-      endTime: '16:30',
-      slotEmpty: 1
-    },
-    {
-      id: 6,
-      startTime: '16:30',
-      endTime: '18:00',
-      slotEmpty: 0
-    },
-  ];
+  useEffect(() => {
+    // Truy van du lieu tu Firebase Realtime Database
+    fetchDataFromFirebase();
+  }, [selectedDate]);
 
-  const petArr = [
-    {
-      id: 1,
-      avatar: '',
-      name: 'Mỹ Diệu',
-    },
-    {
-      id: 2,
-      avatar: '',
-      name: 'Bé Dâu',
-    },
-    {
-      id: 3,
-      avatar: '',
-      name: 'Con Mâu',
-    },
-  ];
+  const fetchDataFromFirebase = async () => {
+    const appoinmtRef = ref(database, `appointment/${clinicId}`);
+    const appoinmtSnapshot = await get(appoinmtRef);
+    const data = appoinmtSnapshot.val();
 
+    var timeData = [];
+
+    currentDate = `${selectedDate.getDate()}-${selectedDate.getMonth() + 1}-${selectedDate.getFullYear()}`;
+    const parsedDateCurrent = new Date(currentDate);
+
+    data.forEach((item) => {
+      const parsedDateItem = new Date(item.date);
+      if (item !== undefined && parsedDateCurrent.getTime() === parsedDateItem.getTime()) {          
+        timeData.push({
+          id: item.id,
+          startTime: item.start_time,
+          endTime: item.end_time,
+        })
+      }
+    })
+    setTimeList(timeData);
+
+    const petRef = ref(database, `pet/${myUserID}`);
+    const petSnapshot = await get(petRef);
+    const petData = petSnapshot.val();
+    var petArr = [];
+
+    Object.keys(petData).forEach((key) => {
+      const item = petData[key];
+      petArr.push({
+        id: key,        // Lay key cua nut du lieu lam ID
+        name: item.name,
+        avatar: item.avatar,
+      });
+    });
+    setPetList(petArr);
+
+    setLoading(false);    
+  }
+
+  if (loading) {
+    return <Text style={{marginTop: '12%', marginLeft: '4%'}}>Loading...</Text>;
+  }
 
   return (
     <View style={styles.wrapping}>
@@ -95,14 +99,13 @@ export default function V_BookingVetScreen({ navigation }) {
         {/* Clinic info */}
         <View style={[styles.clinic, styles.row]}>
           <View style={styles.clinicImgView}>
-            <Image style={styles.clinicImg} source={require('../../assets/images/V_clinicBranch.png')}></Image>
+            <Image style={styles.clinicImg} source={{ uri: clinicAvatar }}></Image>
           </View>
           <View style={styles.clinicInfo}>
-            <Text style={styles.name}>Phòng khám Mon</Text>
-            <Text style={styles.branch}>Cơ sở 1</Text>
+            <Text style={styles.name}>{clinicName}</Text>
             <View style={[styles.address, styles.row]}>
               <Image style={styles.iconAddress} source={require('../../assets/icons/V_clinic-location.png')}></Image>
-              <Text style={styles.textAddress}>160 Xô Viết Nghệ Tĩnh, Phường 24, Bình Thạnh, Thành Phố Hồ Chí Minh</Text>
+              <Text style={styles.textAddress}>{clinicAddress}</Text>
             </View>
           </View>
         </View>
@@ -120,11 +123,13 @@ export default function V_BookingVetScreen({ navigation }) {
           disabledDateNameStyle={{ color: 'grey' }}
           disabledDateNumberStyle={{ color: 'grey' }}
           iconContainer={{ flex: 0.1 }}
+          selectedDate={selectedDate}
+          onDateSelected={handleDateSelected}
         />
         {/* pickup time */}
         <Text style={[styles.subTitle, styles.marginLeft6]}>Thời gian</Text>
         <ScrollView horizontal={true} style={styles.listTimeOptions}>
-          {timeArr.map(item => {
+          {timeList.map(item => {
             const bgrColor = item.id === timeId ? '#b0dbe2' : '#f9bebf';
             const color = item.id === timeId ? '#4d5f62' : '#ffffff';
 
@@ -142,7 +147,7 @@ export default function V_BookingVetScreen({ navigation }) {
         {/* pickup pet */}
         <Text style={[styles.subTitle, styles.marginLeft6]}>Thú cưng</Text>
         <ScrollView horizontal={true} style={styles.listPetOptions}>
-          {petArr.map(item => {
+          {petList.map(item => {
             const bgrColor = item.id === petId ? '#b0dbe2' : '#f9bebf';
             const color = item.id === petId ? '#4d5f62' : '#ffffff';
 
@@ -190,7 +195,7 @@ const PetCard = (prop) => {
       style={[styles.petCard, styles.row, { backgroundColor: prop.backgroundColor }]}
       onPress={prop.onPress}
     >
-      <Image style={styles.petImg} source={require('../../assets/images/V_MyDieu-avatar.png')}></Image>
+      <Image style={styles.petImg} source={ {uri: prop.avatar} }></Image>
       <Text style={[styles.petName, { color: prop.textColor }]}>{prop.name}</Text>
     </TouchableOpacity>
   )
@@ -290,25 +295,20 @@ const styles = StyleSheet.create({
   clinicInfo: {
     width: '76%',
     height: 100,
-    paddingVertical: 2,
-    paddingLeft: 8,
+    paddingVertical: '3%',
+    paddingHorizontal: '1%',
     marginLeft: -6,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
   },
   name: {
     color: '#39A3C0',
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'lexend-regular',
   },
-  branch: {
-    color: '#39A3C0',
-    fontSize: 16,
-    fontFamily: 'lexend-light',
-  },
   address: {
-    width: '98%',
-    marginTop: 8,
+    width: '92%',
+    marginTop: '4%',
   },
   iconAddress: {
     width: 18,
@@ -375,8 +375,8 @@ const styles = StyleSheet.create({
   },
   // schedule button
   btn: {
-    width: '64%',
-    paddingVertical: 10,
+    width: '68%',
+    paddingVertical: '3%',
     alignItems: 'center',
     borderRadius: 12,
     backgroundColor: '#A51A29',

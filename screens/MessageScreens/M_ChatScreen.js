@@ -117,7 +117,9 @@ import { View, Text, TextInput, Button } from 'react-native';
 
 // const SOCKET_SERVER_URL = 'https://c4c3-2001-ee0-4f0c-b2b0-b00d-bff3-d7eb-4219.ngrok-free.app';
 
-const M_ChatScreen = () => {
+const M_ChatScreen = ({ navigation, route }) => {
+  const { propId, propName, propAvatar } = route.params;
+  console.log(propId, propName, propAvatar);
 //   const [message, setMessage] = useState('');
 //   const [socket, setSocket] = useState(null);
 

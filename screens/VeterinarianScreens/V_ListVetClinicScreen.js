@@ -8,39 +8,67 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import React, { Component } from "react";
+import React, { useState, useEffect } from "react";
+import { database } from "../../firebase";
+import {ref, get} from "firebase/database";
 
-export default function V_ListVetClinicScreen({ navigation }) {
-  const clinicArr = [
-    {
-      id: 1,
-      avatar: '',
-      name: 'Phòng khám Mon',
-      address: '178 Trần Hưng Đạo, Quận 1, Thành phố Hồ Chí Minh',
-      followers: '1.141.655'
-    },
-    {
-      id: 2,
-      avatar: '',
-      name: 'Phòng khám Pet Hospital',
-      address: '53 Thạch Thị Thanh, Quận 1, Thành phố Hồ Chí Minh',
-      followers: '1.030.111'
-    },
-    {
-      id: 3,
-      avatar: '',
-      name: 'Phòng Khám Thú Y Belwee',
-      address: '160 Xô Viết Nghệ Tĩnh, Phường 24, Bình Thạnh, Thành phố Hồ Chí Minh',
-      followers: '1.141.655'
-    },
-    {
-      id: 4,
-      avatar: '',
-      name: 'Phòng khám New Pet',
-      address: '651/4 Điện Biên Phủ, Phường 1, Quận 3, Thành phố Hồ Chí Minh',
-      followers: '1.030.111'
-    },
-  ];
+export default function V_ListVetClinicScreen({ navigation, route }) {
+  const { provinceName, districtName, wardName } = route.params;
+
+  const [clinicData, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Truy van du lieu tu Firebase Realtime Database
+    fetchDataFromFirebase();
+  }, []);
+
+  const fetchDataFromFirebase = async () => {
+    const clinicRef = ref(database, 'clinic');
+    const clinicSnapshot = await get(clinicRef);
+    const data = clinicSnapshot.val();
+
+    var matchedProvince = [];
+    var matchedDistrict = [];
+    var matchedWard = [];
+
+    data.forEach((item) => {
+      if (item !== undefined) {
+        const address = item.address;
+        const addressParts = address.split(',');
+
+        const province = addressParts[3].trim();
+        const district = addressParts[2].trim();
+        const ward = addressParts[1].trim();
+
+        if (province === provinceName) {
+          matchedProvince.push(item);
+          if (district === districtName) {
+            matchedDistrict.push(item);
+            if (ward === wardName) {
+              matchedWard.push(item);
+            }
+          }
+        }
+      }
+    });
+
+    if (matchedWard.length != 0) {
+      setData(matchedWard);
+    } else if (matchedDistrict.length != 0) {
+      setData(matchedDistrict);
+    } else if (matchedProvince.length != 0) {
+      console.log(matchedProvince);
+    } else {
+      setData(data);
+    }
+
+    setLoading(false);
+  };
+
+  if (loading) {
+    return <Text style={{marginTop: '12%', marginLeft: '4%'}}>Loading...</Text>;
+  }
 
   return (
     <View style={styles.wrapping}>
@@ -61,7 +89,7 @@ export default function V_ListVetClinicScreen({ navigation }) {
         <Text style={styles.titleText}>Các phòng khám ở gần bạn</Text>
       </View>
       <ScrollView style={styles.listClinicCard}>
-        {clinicArr.map(item => <ClinicCard key={item.id} {...item} navigation={navigation} />)}
+        {clinicData.map(item => <ClinicCard key={item.id} {...item} navigation={navigation} />)}
       </ScrollView>
     </View>
   );
@@ -85,7 +113,7 @@ const ClinicCard = (prop) => {
         borderRadius: 40,
         marginRight: 8,
       }}>
-        <Image style={styles.clinicImg} source={require('../../assets/images/V_clinicAvatar.png')}></Image>
+        <Image style={styles.clinicImg} source={{ uri: prop.avatar }}></Image>
       </View>
       {/* 
         Clinic Info
@@ -109,7 +137,14 @@ const ClinicCard = (prop) => {
           {/* booking vet button */}
           <TouchableOpacity
             style={[styles.bookingBtn, styles.row]}
-            onPress={() => prop.navigation.navigate("V_BookingVet")}>
+            onPress={() => {
+              const clinicId = prop.id;
+              const clinicName = prop.name;
+              const clinicAddress = prop.address;
+              const clinicAvatar = prop.avatar;
+              prop.navigation.navigate("V_BookingVet", {clinicId, clinicName, clinicAddress, clinicAvatar})
+            }}
+          >
             <Text style={styles.textBookingBtn}>Đặt lịch khám</Text>
           </TouchableOpacity>
         </View>

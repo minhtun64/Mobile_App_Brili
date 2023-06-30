@@ -4,24 +4,29 @@ import {
   StyleSheet,
   View,
   Image,
-  SafeAreaView,
   TouchableOpacity,
   Dimensions,
+  SafeAreaView,
 } from 'react-native';
 import * as Font from "expo-font";
-import SearchableDropdown from 'react-native-searchable-dropdown';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { SelectList } from 'react-native-dropdown-select-list'
 import axios from 'axios';
 
 export default function V_LocationScreen({ navigation }) {
   //Data Source for the SearchableDropdown
   const apiUrl = 'https://raw.githubusercontent.com/kenzouno1/DiaGioiHanhChinhVN/master/data.json';
-  const [fontLoaded, setFontLoaded] = useState(false);
+  var data = [];
+  const [provinceName, setProvinceName] = useState('')
+  const [districtName, setDistrictName] = useState('')
+  const [wardName, setWardName] = useState('')
   const [provinces, setProvinces] = useState([]);
   const [selectedProvince, setSelectedProvince] = useState('');
   const [districts, setDistricts] = useState([]);
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [wards, setWards] = useState([]);
   const [selectedWard, setSelectedWard] = useState('');
+
   const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
@@ -43,30 +48,6 @@ export default function V_LocationScreen({ navigation }) {
       });
   }, []);
 
-  useEffect(() => {
-    const loadFont = async () => {
-      await Font.loadAsync({
-        "lexend-black": require("../../assets/fonts/Lexend/static/Lexend-Black.ttf"),
-        "lexend-bold": require("../../assets/fonts/Lexend/static/Lexend-Bold.ttf"),
-        "lexend-extrabold": require("../../assets/fonts/Lexend/static/Lexend-ExtraBold.ttf"),
-        "lexend-extralight": require("../../assets/fonts/Lexend/static/Lexend-ExtraLight.ttf"),
-        "lexend-light": require("../../assets/fonts/Lexend/static/Lexend-Light.ttf"),
-        "lexend-medium": require("../../assets/fonts/Lexend/static/Lexend-Medium.ttf"),
-        "lexend-regular": require("../../assets/fonts/Lexend/static/Lexend-Regular.ttf"),
-        "lexend-semibold": require("../../assets/fonts/Lexend/static/Lexend-SemiBold.ttf"),
-        "lexend-thin": require("../../assets/fonts/Lexend/static/Lexend-Thin.ttf"),
-        "SF-Pro-Display": require("../../assets/fonts/SF-Pro-Display/SF-Pro-Display-Regular.otf"),
-      });
-      setFontLoaded(true);
-    };
-
-    loadFont();
-  }, []);
-
-  if (!fontLoaded) {
-    return null; // or a loading spinner
-  }
-
   return (
     <View style={styles.wrapping}>
       <View style={[styles.header, styles.row]}>
@@ -82,224 +63,91 @@ export default function V_LocationScreen({ navigation }) {
         </View>
       </View>
 
-
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <Text style={styles.headingModal}>Chọn vị trí của bạn</Text>
-        <View style={styles.provincesContainer}>
-          <Text style={styles.addressLabel}>
-            Tỉnh/Thành phố:
-          </Text>
-          <SearchableDropdown
-            keyboardDismissMode="interactive"
-            onTextChange={(text) => console.log(text)}
-            //On text change listner on the searchable input
-            onItemSelect={(item) => {
-              setSelectedProvince(item.name)
-              setDistricts(item.districts)
+        <KeyboardAwareScrollView style={styles.addressContainer}>
+          <Text style={styles.titleSelect}>Tỉnh/ Thành phố:</Text>
+          <SelectList
+            setSelected={(val) => {
+              setSelectedProvince(val);
+              setProvinceName(provinces[val].Name);
             }}
-            //onItemSelect called after the selection from the dropdown
-            containerStyle={{ padding: 5 }}
-            //suggestion container style
-            textInputStyle={{
-              //inserted text style
-              height: 44,
-              width: '84%',
-              alignSelf: 'center',
-              padding: 12,
-              borderWidth: 1,
-              borderColor: '#887E7E',
-              borderRadius: 4,
-              backgroundColor: '#FFFFFF',
-            }}
-            itemStyle={{
-              //single dropdown item style
-              width: '84%',
-              padding: 10,
-              marginTop: 2,
-              alignSelf: 'center',
-              backgroundColor: '#FAF9F8',
-              borderColor: '#bbb',
-              borderWidth: 1,
-              borderRadius: 5,
-            }}
-            itemTextStyle={{
-              //text style of a single dropdown item
-              fontSize: 13,
-              color: '#222',
-            }}
-            itemsContainerStyle={{
-              //items container style you can pass maxHeight
-              //to restrict the items dropdown hieght
-              maxHeight: '60%',
-            }}
-            items={provinces.map((city, index) => ({
-              id: index,
-              name: city.Name,
-              districts: city.Districts
+            data={provinces.map((city, index) => ({
+              key: index,
+              value: city.Name,
             }))}
-            //mapping of item array
-            defaultIndex={2}
-            //default selected item index
-            placeholder="Tìm Thành phố ..."
-            //place holder for the search input
-            resetValue={false}
-            //reset textInput Value with true and false state
-            underlineColorAndroid="transparent"
-          //To remove the underline from the android input
+            save="key"
+            placeholder='Chọn Thành phố'
+            searchPlaceholder='Tìm kiếm'
           />
-        </View>
 
-        {/*
+          {/*
           Quận/Huyện dropdown
-        */}
-        <View style={styles.districtsContainer}>
-          <Text style={styles.addressLabel}>
-            Quận/Huyện:
-          </Text>
-          <SearchableDropdown
-            keyboardDismissMode="interactive"
-            onTextChange={(item) => console.log(item)}
-            //On text change listner on the searchable input
-            onItemSelect={(item) => {
-              setSelectedDistrict(item.name)
-              setWards(item.wardsArr)
+          */}
+          <Text style={styles.titleSelect}>Quận/ Huyện: </Text>
+          <SelectList
+            setSelected={(val) => {
+              setDistrictName(provinces[selectedProvince].Districts[val].Name);
+              setSelectedDistrict(val);
             }}
-            //onItemSelect called after the selection from the dropdown
-            containerStyle={{ padding: 5 }}
-            //suggestion container style
-            textInputStyle={{
-              //inserted text style
-              height: 44,
-              width: '84%',
-              alignSelf: 'center',
-              padding: 12,
-              borderWidth: 1,
-              borderColor: '#887E7E',
-              borderRadius: 4,
-              backgroundColor: '#FFFFFF',
-            }}
-            itemStyle={{
-              //single dropdown item style
-              width: '84%',
-              padding: 10,
-              marginTop: 2,
-              alignSelf: 'center',
-              backgroundColor: '#FAF9F8',
-              borderColor: '#bbb',
-              borderWidth: 1,
-            }}
-            itemTextStyle={{
-              //text style of a single dropdown item
-              fontSize: 13,
-              color: '#222',
-            }}
-            itemsContainerStyle={{
-              //items container style you can pass maxHeight
-              //to restrict the items dropdown hieght
-              maxHeight: '60%',
-            }}
-            items={districts.map((district, index) => ({
-              id: district.Id,
-              name: district.Name,
-              wardsArr: district.Wards,
-            }))}
-            //mapping of item array
-            defaultIndex={2}
-            //default selected item index
-            placeholder="Tìm Quận/Huyện ..."
-            //place holder for the search input
-            resetValue={false}
-            //reset textInput Value with true and false state
-            underlineColorAndroid="transparent"
-            //To remove the underline from the android input
-            disabled={true}
+            data={
+              selectedProvince !== ''
+                ? provinces[selectedProvince].Districts.map((district, index) => ({
+                  key: index,
+                  value: district.Name,
+                }))
+                : ''
+            }
+            save="key"
+            placeholder='Chọn Quận huyện'
+            searchPlaceholder='Tìm kiếm'
+            notFoundText='Vui lòng chọn Tỉnh/Thành phố!'
           />
-        </View>
 
-        {/*
+          {/*
           Phường/Xã dropdown 
           */}
-        <View style={styles.wardsContainer}>
-          <Text style={styles.addressLabel}>
-            Phường/Xã:
-          </Text>
-          <SearchableDropdown
-            onTextChange={(item) => console.log(item)}
-            //On text change listner on the searchable input
-            onItemSelect={(item) => {
-              setSelectedWard(item.name)  
-              if (selectedProvince !== null && selectedDistrict !== null && selectedWard !== null) 
-                setIsButtonDisabled(false);
+          <Text style={styles.titleSelect}>Phường/ Xã:</Text>
+          <SelectList
+            setSelected={(val) => {
+              setWardName(provinces[selectedProvince].Districts[selectedDistrict].Wards[val].Name);
+              setSelectedWard(val);
+              setIsButtonDisabled(false);
             }}
-            //onItemSelect called after the selection from the dropdown
-            containerStyle={{ padding: 5 }}
-            //suggestion container style
-            textInputStyle={{
-              //inserted text style
-              height: 44,
-              width: '84%',
-              alignSelf: 'center',
-              padding: 12,
-              borderWidth: 1,
-              borderColor: '#887E7E',
-              borderRadius: 4,
-              backgroundColor: '#FFFFFF',
-            }}
-            itemStyle={{
-              //single dropdown item style
-              width: '84%',
-              padding: 10,
-              marginTop: 2,
-              alignSelf: 'center',
-              backgroundColor: '#FAF9F8',
-              borderColor: '#bbb',
-              borderWidth: 1,
-            }}
-            itemTextStyle={{
-              //text style of a single dropdown item
-              fontSize: 13,
-              color: '#222',
-            }}
-            itemsContainerStyle={{
-              //items container style you can pass maxHeight
-              //to restrict the items dropdown hieght
-              maxHeight: '60%',
-            }}
-            items={wards.map((ward, index) => ({
-              id: ward.Id,
-              name: ward.Name
-            }))}
-            //mapping of item array
-            defaultIndex={2}
-            //default selected item index
-            placeholder="Tìm Phường/Xã ..."
-            //place holder for the search input
-            resetValue={false}
-            //reset textInput Value with true and false state
-            underlineColorAndroid="transparent"
-          //To remove the underline from the android input
+            data={
+              selectedProvince !== '' && selectedDistrict !== ''
+                ? provinces[selectedProvince].Districts[selectedDistrict].Wards.map((ward, index) => ({
+                  key: index,
+                  value: ward.Name,
+                }))
+                : ''
+            }
+            save="key"
+            placeholder='Chọn Phường xã'
+            searchPlaceholder='Tìm kiếm'
+            notFoundText='Vui lòng chọn Tỉnh/Thành phố! và Quận/Huyện!'
           />
-        </View>
-      </SafeAreaView>
+        </KeyboardAwareScrollView>
+      </View>
       <Image
         style={{
           width: halfHeight,
-          height: '28%',
+          height: '18%',
           resizeMode: 'cover',
-          alignSelf: 'center',
-          marginTop: 'auto',
-          marginBottom: 'auto',
+          position: 'absolute',
+          top: '9%',
+          right: '1%',
         }}
         source={require('../../assets/images/V_bookingVet.png')}
         onLayout={onLayout}>
       </Image>
       <TouchableOpacity
         style={[
-          styles.submitBtn, 
+          styles.submitBtn,
           { backgroundColor: isButtonDisabled ? '#CCCCCC' : '#A51A29' }
         ]}
         disabled={isButtonDisabled}
-        onPress={() => navigation.navigate("V_ListVetClinic")}
+        onPress={() => navigation.navigate("V_ListVetClinic", { provinceName, districtName, wardName })}
       >
         <Text style={styles.textBtn}>Tìm phòng khám</Text>
       </TouchableOpacity>
@@ -309,7 +157,7 @@ export default function V_LocationScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   wrapping: {
-    height: Dimensions.get("window").height * 0.95,
+    height: '95%',
     backgroundColor: '#FFFFFF',
   },
   row: {
@@ -363,40 +211,47 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   container: {
-    width: '90%',
+    width: '92%',
+    height: '100%',
     alignSelf: 'center',
-    backgroundColor: '#FFF6F6',
-    paddingTop: '2%',
-    paddingBottom: '4%',
-    borderRadius: 36,
-    borderWidth: 0.5,
-    borderColor: '#F5817E',
   },
   headingModal: {
     fontSize: 18,
     fontFamily: 'lexend-medium',
-    marginLeft: 20,
-    marginBottom: 2,
+    marginBottom: '4%',
+    paddingLeft: '4%',
   },
-  addressLabel: {
-    marginLeft: 24,
-    marginTop: 2,
-    fontSize: 13,
-    fontFamily: 'lexend-semibold',
+  titleSelect: {
+    fontSize: 14,
+    fontFamily: 'lexend-medium',
+    marginBottom: '1%',
+    marginTop: '3%',
   },
   submitBtn: {
-    width: '80%',
+    width: '88%',
     borderRadius: 8,
     padding: 12,
-    marginBottom: Dimensions.get("window").height * 0.05 + 16,
+    marginTop: '6%',
+    marginBottom: Dimensions.get("window").height * 0.05 + 14,
     alignSelf: 'center',
+    position: 'absolute',
+    bottom: 0,
   },
   textBtn: {
     fontSize: 16,
     fontFamily: 'lexend-bold',
     color: '#FFFFFF',
     alignSelf: 'center',
+  },
+  selectListContainer: {
+    width: '100%',
+    justifyContent: 'space-between',
+    fontSize: 8,
+  },
+  addressContainer: {
+    flex: 1,
+    width: '100%',
+    padding: '4%',
+    marginBottom: Dimensions.get("window").height * 0.27,
   }
 });
-
-
