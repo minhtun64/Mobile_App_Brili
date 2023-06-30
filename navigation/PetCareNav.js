@@ -38,6 +38,7 @@ import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
 
+import PushNotification from "../components/PushNotification";
 const Stack = createStackNavigator();
 function StackNavigator() {
   return (
@@ -94,6 +95,7 @@ const HealthStack = createStackNavigator();
 function HealthStackNavigator() {
   return (
     <HealthStack.Navigator screenOptions={{ headerShown: false }}>
+      {/* <HealthStack.Screen name="Noti" component={PushNotification} /> */}
       <HealthStack.Screen name="H_Note" component={H_NoteScreen} />
       <HealthStack.Screen name="H_DetailNote" component={H_DetailNote} />
       <HealthStack.Screen name="H_UpdateNote" component={H_UpdateNote} />

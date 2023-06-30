@@ -19,7 +19,8 @@ export default function H_NoteScreen({ navigation }) {
     const [currentDate, setCurrentDate] = useState(moment().format("dddd DD/MM/YYYY"));
 
     const handleDayPress = (day) => {
-        setSelectedDate(day.dateString);
+        setSelectedDate(day.dateString);  
+        console.log(day.dateString)
         setCurrentDate(moment(day.dateString).format("dddd DD/MM/YYYY"));
         setShowCalendar(false);
     };
@@ -32,17 +33,17 @@ export default function H_NoteScreen({ navigation }) {
 
     const handlePrevDay = () => {
         const newDate = moment(currentDate, "dddd, DD/MM/YYYY").subtract(1, "days").format("dddd, DD/MM/YYYY");
+        const newDate2 = moment(currentDate, "dddd, DD/MM/YYYY").subtract(1, "days").format("YYYY-MM-DD");
+        setSelectedDate(newDate2)
         setCurrentDate(newDate);
     };
 
     const handleNextDay = () => {
         const newDate = moment(currentDate, "dddd, DD/MM/YYYY").add(1, "days").format("dddd, DD/MM/YYYY");
+        const newDate2 = moment(currentDate, "dddd, DD/MM/YYYY").add(1, "days").format("YYYY-MM-DD");
+        setSelectedDate(newDate2)
         setCurrentDate(newDate);
     };
-    function onSwipeRight() {
-        navigation.goBack();
-    }
-
     const customTheme = {
         arrowColor: "#F5817E",
         selectedDayBackgroundColor: "#F5817E",
@@ -55,8 +56,17 @@ export default function H_NoteScreen({ navigation }) {
         const notesRef = ref(database, `note/${userID}`);
         onValue(notesRef, (snapshot) => {
             const notesData = snapshot.val();
-            const filteredNotes = Object.values(notesData).filter((note) => moment(note.date, "DD-MM-YYYY").isSame(selectedDate, "day"));
-            setNotes(filteredNotes);
+            if (notesData !== null) {
+                const filteredNotes = Object.entries(notesData).map(([noteID, note]) => {
+                  // Gán ID cho mỗi ghi chú
+                  note.noteID = noteID;
+                  return note;
+                }).filter((note) => moment(note.date, "DD-MM-YYYY").isSame(selectedDate, "day"));
+                setNotes(filteredNotes);
+              } else {
+                setNotes([]); // Không có ghi chú, đặt mảng rỗng cho setNotes
+              }
+            // console.log(notes);
         });
 
         return () => {
@@ -64,7 +74,7 @@ export default function H_NoteScreen({ navigation }) {
             off(notesRef);
         };
     }, [selectedDate]);
-
+    console.log(selectedDate);
     LocaleConfig.locales[LocaleConfig.defaultLocale].dayNamesShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     LocaleConfig.locales[LocaleConfig.defaultLocale].monthNames = [
         "Tháng 1,",
@@ -134,7 +144,8 @@ export default function H_NoteScreen({ navigation }) {
                     <View style={styles.lineCalendar}></View>
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.containerListTask}>
                         {notes.map((note) => (
-                            <TouchableOpacity key={note.noteID} onPress={() => navigation.navigate("H_DetailNote")}>
+                          
+                            <TouchableOpacity key={note.noteID}  onPress={() => navigation.navigate("H_DetailNote",{ noteID: note.noteID})}>
                                 <View style={styles.taskItem}>
                                     <View style={styles.containertaskTitle}>
                                         <Text style={styles.taskTitle}>{note.title}</Text>
@@ -143,7 +154,7 @@ export default function H_NoteScreen({ navigation }) {
                                         <Text style={styles.taskTime}>{note.time}</Text>
                                     </View>
 
-                                    <TouchableOpacity onPress={() => navigation.navigate("H_UpdateNote")}>
+                                    <TouchableOpacity onPress={() => navigation.navigate("H_UpdateNote",{ noteID: note.noteID})}>
                                         <Image style={styles.taskEditIcon} source={require("../../assets/icons/editIcon.png")} />
                                     </TouchableOpacity>
                                 </View>
@@ -175,8 +186,6 @@ export default function H_NoteScreen({ navigation }) {
                     />
                 </View>
             )}
-
-            {/* jkdashaskdhakdhasjkd */}
         </View>
     );
 }

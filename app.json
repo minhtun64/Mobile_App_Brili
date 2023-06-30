@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
@@ -38,7 +40,9 @@
           "linkedin"
         ],
         "UIPasteboardOptions": {
-          "allowedPasteboardTypes": ["public.text"]
+          "allowedPasteboardTypes": [
+            "public.text"
+          ]
         }
       }
     },
@@ -46,10 +50,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-        
       },
-      "project.ext.react" : [
-       { "enableHermes" : true} ]
+      "project.ext.react": [
+        {
+          "enableHermes": true
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -87,6 +93,9 @@
           "asset": "assets/fonts/SF-Pro-Display/SF-Pro-Display-Regular.otf"
         }
       ]
-    }
+    },
+    "plugins": [
+      "sentry-expo"
+    ]
   }
 }

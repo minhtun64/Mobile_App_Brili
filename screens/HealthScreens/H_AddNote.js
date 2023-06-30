@@ -7,19 +7,44 @@ import React, { Component, useCallback, useEffect, useState, useRef } from "reac
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { database } from "../../firebase";
 import { onValue, ref, get, set, push, off } from "firebase/database";
+import moment from "moment";
+
+import PopupModal from '../../components/PopupModal';
 const NOTEBOOK = "NOTEBOOK";
 const HANDBOOK = "HANDBOOK";
 export default function H_NoteScreen({ navigation }) {
+    //Ví dụ userid
+    const myUserId = "10"; 
+    const userId = 1;
     const [gender, setstatebtn] = useState(NOTEBOOK);
     const [fontLoaded, setFontLoaded] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
     const [value, setValue] = useState("");
     const [value2, setValue2] = useState("");
-    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(moment().format("YYYY-MM-DD"));
+    const [currentDate, setCurrentDate] = useState(moment().format("DD/MM/YYYY"));
+    const [listNoteId, setListNoteId] = useState([])
+    
+    const [modalVisible, setModalVisible] = useState(false);
+    const [popupType, setPopupType] = useState('');
+    const [popupTitle, setPopupTitle] = useState('');
+    const [popupMessage, setPopupMessage] = useState('');
+    const openModal = (type, title, message) => {
+        setPopupType(type);
+        setPopupTitle(title);
+        setPopupMessage(message);
+        setModalVisible(true);
+    };
+  
+    const closeModal = () => {
+      setModalVisible(false);
+      navigation.goBack();
+    };
 
     const handleDayPress = (day) => {
         setSelectedDate(day.dateString);
         // Ẩn popup calendar sau khi chọn ngày
+        setCurrentDate(moment(day.dateString).format("DD/MM/YYYY"))
         setShowCalendar(false);
     };
     const handlePressOutsidePopup = useCallback(() => {
@@ -28,57 +53,103 @@ export default function H_NoteScreen({ navigation }) {
     const handleShowCalendar = () => {
         setShowCalendar(!showCalendar);
     };
-
     const customTheme = {
         arrowColor: "#F5817E",
         selectedDayBackgroundColor: "#F5817E",
     };
 
     const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
-    const [selectedTime, setSelectedTime] = useState("Giờ");
+    const [selectedTime, setSelectedTime] = useState(moment().format('HH:mm'));
 
     const showTimePicker = () => {
         setTimePickerVisibility(true);
     };
-
     const hideTimePicker = () => {
         setTimePickerVisibility(false);
     };
 
     const handleTimeConfirm = (time) => {
-        setSelectedTime(time.toLocaleTimeString());
+        setSelectedTime(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         hideTimePicker();
-    };
+      };
     const [petImages, setPetImages] = useState([]);
-    const PetImages = ({ userId }) => {
-        userId = 1;
-        useEffect(() => {
-            const petImagesRef = ref(database, `pet/${userId}`);
-            onValue(petImagesRef, (snapshot) => {
-                const petImagesData = snapshot.val();
-                console.log(petImagesData);
-                if (petImagesData) {
-                    const petImagesArray = Object.entries(petImagesData).map(([petId, petData]) => ({
-                        petId: Object.keys(petImagesData),
-                        avatar: petData.avatar,
-                        isChecked: false,
-                    }));
-                    console.log(petImagesData.petId);
-                    setPetImages(petImagesArray);
-                }
-            });
 
-            return () => {
-                off(petImagesRef);
-            };
-        }, [userId]);
-    };
-    PetImages(1);
+    useEffect(() => {
+        const petImagesRef = ref(database, `pet/${userId}`);     
+        onValue(petImagesRef, (snapshot) => {
+            const petImagesData = snapshot.val();
+            if (petImagesData) {
+                const petImagesArray = Object.entries(petImagesData).map(([petId, petData]) => ({
+                    petId: petId,
+                    avatar: petData.avatar,
+                    isChecked: false,
+                }));
+                setPetImages(petImagesArray);           
+            }         
+        }); 
+        return () => {
+            off(petImagesRef);
+        };
+    }, [userId]);
+  
+
+    // PetImages(1);
 
     const handleCheck = (petId) => {
         const updatedPetImages = petImages.map((petImage) => (petImage.petId === petId ? { ...petImage, isChecked: !petImage.isChecked } : petImage));
+        // console.log(updatedPetImages)
         setPetImages(updatedPetImages);
     };
+
+// Thêm một node mới
+    useEffect(() => {
+        const noteRef = ref(database, `note/${userId}`);
+        get(noteRef).then((snapshot) => {
+        const data = snapshot.val();
+        const listNoteId = Object.keys(data);
+        setListNoteId(listNoteId);
+        });
+    }, []);
+
+    const handleAddNote = () => {
+        if (value === "") {
+          return;
+        }
+        let maxNoteId = 0;
+        if(listNoteId.length > 0){
+            maxNoteId = Math.max(...listNoteId);
+        }
+     
+        const newNoteId = maxNoteId + 1;
+        const newNoteRef = ref(database, `note/${userId}/${newNoteId}`);
+        // const newNoteData = {
+        //   date: moment(currentDate,"DD/MM/YYYY").format("DD-MM-YYYY"),
+        //   description: value,
+        //   pet: petImages
+        //     .filter(image => image.isChecked)
+        //     .map(image => ({ [`${image.petId}`]: "" })),
+        //   time: selectedTime,
+        //   title: value2,
+        // };
+        const newNoteData = petImages
+        .filter(image => image.isChecked)
+        .reduce((acc, image) => {
+            acc.pet[image.petId] = "";
+            return acc;
+        }, {
+            date: moment(currentDate, "DD/MM/YYYY").format("DD-MM-YYYY"),
+            description: value,
+            pet: {},
+            time: selectedTime,
+            title: value2,
+        });
+        console.log(newNoteData)
+        if(set(newNoteRef, newNoteData)){
+            openModal('success', 'Thành công', 'Đây là thông báo thành công')
+        }
+        console.log(selectedDate)
+    };
+
     LocaleConfig.locales[LocaleConfig.defaultLocale].dayNamesShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     LocaleConfig.locales[LocaleConfig.defaultLocale].monthNames = [
         "Tháng 1,",
@@ -94,33 +165,15 @@ export default function H_NoteScreen({ navigation }) {
         "Tháng 11,",
         "Tháng 12,",
     ];
-    useEffect(() => {
-        const loadFont = async () => {
-            await Font.loadAsync({
-                "lexend-black": require("../../assets/fonts/Lexend/static/Lexend-Black.ttf"),
-                "lexend-bold": require("../../assets/fonts/Lexend/static/Lexend-Bold.ttf"),
-                "lexend-extrabold": require("../../assets/fonts/Lexend/static/Lexend-ExtraBold.ttf"),
-                "lexend-extralight": require("../../assets/fonts/Lexend/static/Lexend-ExtraLight.ttf"),
-                "lexend-light": require("../../assets/fonts/Lexend/static/Lexend-Light.ttf"),
-                "lexend-medium": require("../../assets/fonts/Lexend/static/Lexend-Medium.ttf"),
-                "lexend-regular": require("../../assets/fonts/Lexend/static/Lexend-Regular.ttf"),
-                "lexend-semibold": require("../../assets/fonts/Lexend/static/Lexend-SemiBold.ttf"),
-                "lexend-thin": require("../../assets/fonts/Lexend/static/Lexend-Thin.ttf"),
-                "SF-Pro-Display": require("../../assets/fonts/SF-Pro-Display/SF-Pro-Display-Regular.otf"),
-            });
-            setFontLoaded(true);
-        };
-
-        loadFont();
-    }, []);
-
-    //Lưu ảnh
-
-    if (!fontLoaded) {
-        return null; // or a loading spinner
-    }
     return (
         <View style={styles.container}>
+             <PopupModal
+                visible={modalVisible}
+                type={popupType}
+                title={popupTitle}
+                message={popupMessage}
+                onClose={closeModal}
+            />
             <ImageBackground source={require("../../assets/imagesHealthScreen/imageBackground7.png")} style={styles.image}>
                 <View style={styles.toggleBtn}>
                     <TouchableOpacity onPress={() => setstatebtn(NOTEBOOK)} style={[styles.OptionTab, gender == NOTEBOOK ? styles.GenderActive : null]}>
@@ -194,7 +247,7 @@ export default function H_NoteScreen({ navigation }) {
                                                 <Image style={styles.iconCalendar} source={require("../../assets/icons/calendar-search.png")}></Image>
                                             </TouchableOpacity>
 
-                                            <Text style={styles.descriptionTask}>Ngày</Text>
+                                            <Text style={styles.descriptionTask}>{currentDate}</Text>
                                         </View>
                                     </View>
                                     <View style={styles.containerComponent}>
@@ -220,22 +273,12 @@ export default function H_NoteScreen({ navigation }) {
                                         </View>
                                     ))}
                                 </ScrollView>
-                                {/* <View style={styles.containerListAvt}>
-                                    <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                                        {petImages.map((petId, index) => (
-                                            <View style={styles.containerAvt} key={petId}>
-                                                <Image style={styles.avatar} source={{ uri: `pet/${userId}/${petId}/image` }} />
-                                                <Checkbox style={styles.checkbox} value={checkedImages[index]} onValueChange={() => handleCheckImage(index)} />
-                                            </View>
-                                        ))}
-                                    </ScrollView>
-                                </View> */}
                             </View>
                             <View style={styles.containerBtn}>
-                                <TouchableOpacity style={styles.btnDelete}>
+                                <TouchableOpacity style={styles.btnDelete} >
                                     <Text style={styles.textDelete}>Hủy</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.btnUpdate}>
+                                <TouchableOpacity style={styles.btnUpdate} onPress={handleAddNote}>
                                     <Text style={styles.textUpdate}>Thêm</Text>
                                 </TouchableOpacity>
                             </View>
@@ -248,7 +291,7 @@ export default function H_NoteScreen({ navigation }) {
                     <Calendar
                         style={{ borderRadius: 10 }}
                         onDayPress={handleDayPress}
-                        current={selectedDate || undefined}
+                        current={moment(selectedDate, "YYYY-MM-DD").format("YYYY-MM-DD")}
                         hideExtraDays={true}
                         markedDates={{
                             [selectedDate]: {
@@ -258,6 +301,7 @@ export default function H_NoteScreen({ navigation }) {
                             },
                         }}
                         theme={customTheme}
+                        onDateChange={(date) => setSelectedDate(moment(date).format("YYYY-MM-DD"))}
                     />
                 </View>
             )}
