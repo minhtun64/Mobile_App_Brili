@@ -20,7 +20,6 @@ export default function H_NoteScreen({ navigation }) {
 
     const handleDayPress = (day) => {
         setSelectedDate(day.dateString);  
-        console.log(day.dateString)
         setCurrentDate(moment(day.dateString).format("dddd DD/MM/YYYY"));
         setShowCalendar(false);
     };
@@ -66,7 +65,7 @@ export default function H_NoteScreen({ navigation }) {
               } else {
                 setNotes([]); // Không có ghi chú, đặt mảng rỗng cho setNotes
               }
-            // console.log(notes);
+            console.log(notes);
         });
 
         return () => {
@@ -74,7 +73,6 @@ export default function H_NoteScreen({ navigation }) {
             off(notesRef);
         };
     }, [selectedDate]);
-    console.log(selectedDate);
     LocaleConfig.locales[LocaleConfig.defaultLocale].dayNamesShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     LocaleConfig.locales[LocaleConfig.defaultLocale].monthNames = [
         "Tháng 1,",

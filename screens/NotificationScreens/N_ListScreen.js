@@ -1,15 +1,93 @@
 import {
   TouchableOpacity,
-  Button,
   Text,
   StyleSheet,
   View,
   Image,
   ScrollView,
 } from "react-native";
-import React, { Component } from "react";
-
+import moment from "moment";
+import {
+  useEffect,
+  useState,
+  React
+} from "react";
+import { database } from "../../firebase";
+import { formatDate } from "../../components/utils";
+import { onValue, ref, get, set, push, off } from "firebase/database";
 export default function N_ListScreen({ navigation }) {
+  const [userID, setUserID] = useState(1);
+  const [sortedNotis, setSortedNotis] = useState()
+  const [finalNotis, setFinalNotis] = useState()
+  const [userNames, setUserNames] = useState(null);
+
+const getNotificationsByReceiver = async (receiver) => {
+  const notiRef = ref(database, 'notification');
+  onValue(notiRef, (snapshot) => {
+    const notisData = snapshot.val();
+    if (notisData) {
+      const notis = Object.entries(notisData).map(([notiID, noti]) => {
+        if (noti.receiver === receiver) {
+          return { notiID, ...noti };
+        }
+      }).filter(noti => noti); // Lọc bỏ các giá trị undefined
+
+      const sortedNotis = notis.sort((a, b) => {
+        const dateA = moment(a.datetime, "DD-MM-YYYY HH:mm:ss");
+        const dateB = moment(b.datetime, "DD-MM-YYYY HH:mm:ss");
+        return dateB - dateA;
+      });
+
+      setSortedNotis(sortedNotis);
+
+      const listUser = [...new Set(sortedNotis.map(noti => noti.sender))];
+
+      if (listUser.length > 0) {
+        const userRef = ref(database, 'user');
+        onValue(userRef, (snapshot) => {
+          const userData = snapshot.val();
+          if (userData) {
+            const names = {};
+            listUser.forEach((sender) => {
+              const name = userData[sender]?.name;
+              const avatar = userData[sender]?.avatar;
+              if (name && avatar) {
+                names[sender] = { name, avatar };
+              }
+            });
+            // console.log(names);
+            setUserNames(names);
+          }
+        });
+      }
+    }
+  });
+};
+
+useEffect(() => {
+  if (userNames) {
+    const updatedSortedNotis = sortedNotis.map((noti) => {
+      const sender = noti.sender.toString();
+      if (userNames.hasOwnProperty(sender)) {
+        return {
+          ...noti,
+          name: userNames[sender].name,
+          avatar: userNames[sender].avatar,
+        };
+      }
+      return noti;
+    });
+    setFinalNotis(updatedSortedNotis);
+    console.log(finalNotis);
+  }
+}, [userNames, sortedNotis]);
+
+// Gọi hàm getNotificationsByReceiver khi component được render
+useEffect(() => {
+  getNotificationsByReceiver(userID);
+}, []);
+
+
   return (
     <View style={styles.containerAll}>
       <View style={styles.containerHeader}>
@@ -19,23 +97,133 @@ export default function N_ListScreen({ navigation }) {
       </View>
       <View style={styles.containerList}>
         <ScrollView contentContainerStyle={styles.containerListTask}>
-          <View style={styles.containerItem}>
-            <View style={styles.containerAvt}>
-              <Image style={styles.avatar} source={require("../../assets/images/avatar-11.png")} />
-              <Image style={styles.checkbox} source={require("../../assets/icons/messages-3.png")} />
-              
-            </View>
-            <View style={styles.containerContent}>
+          
+        {finalNotis &&
+  finalNotis.map((noti, index) => {
+    const { type, name, datetime, seen, avatar } = noti;
+
+    // Kiểm tra giá trị của trường `type` và `seen` để render giao diện tương ứng
+    switch (type) {
+      case 'repcmt':
+        return (
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate('C_Home', { postid: noti.postid })}
+            key={index}
+          >
+            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+              <View style={styles.containerAvt}>
+                <Image style={styles.avatar} source={{uri: avatar}} />
+                <Image style={styles.checkbox} source={require("../../assets/icons/messages-3.png")} /> 
+              </View>
+              <View style={styles.containerContent}>
                 <View style={styles.containerDes}>
                   <Text>
-                  Đỗ Quỳnh Chi vừa bình luận về bài viết mà bạn vừa đăng.
+                    <Text style={styles.textName}>{name}</Text>
+                    <Text style={styles.textDes}>
+                    {} đã trả lời bình luận của bạn.
+                    </Text>
                   </Text>
                 </View>
                 <View style={styles.containerTime}>
-
+                  <Text style={styles.textTime}>{formatDate(datetime)}</Text>
                 </View>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
+        );
+
+      case 'follow':
+        return (
+          <TouchableOpacity
+            style={styles.btn}
+            key={index}
+          >
+            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+              <View style={styles.containerAvt}>
+                <Image style={styles.avatar} source={{uri: avatar}} />
+                <Image style={styles.checkbox} source={require("../../assets/icons/profile-2user.png")} />
+              </View>
+              <View style={styles.containerContent}>
+                <View style={styles.containerDes}>
+                  <Text>
+                    <Text style={styles.textName}>{name}</Text>
+                    <Text style={styles.textDes}>
+                    {} đã ấn theo dõi bạn.
+                    </Text>
+                  </Text>
+                </View>
+                <View style={styles.containerTime}>
+                  <Text style={styles.textTime}>{formatDate(datetime)}</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+
+      case 'like':
+        return (
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate('C_Home', { postid: noti.postid })}
+            key={index}
+          >
+            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+              <View style={styles.containerAvt}>
+                <Image style={styles.avatar} source={{uri: avatar}} />
+                <Image style={styles.checkbox} source={require("../../assets/icons/Like_Icon.png")} />
+              </View>
+              <View style={styles.containerContent}>
+                <View style={styles.containerDes}>
+                  <Text>
+                    <Text style={styles.textName}>{name}</Text>
+                    <Text style={styles.textDes}>
+                    {} đã thích bài viết của bạn.
+                    </Text>
+                  </Text>
+                </View>
+                <View style={styles.containerTime}>
+                  <Text style={styles.textTime}>{formatDate(datetime)}</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      case 'cmt':
+        return (
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate('C_Home', { postid: noti.postid })}
+            key={index}
+          >
+            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+              <View style={styles.containerAvt}>
+                <Image style={styles.avatar} source={{uri: avatar}} />
+                <Image style={styles.checkbox} source={require("../../assets/icons/messages-3.png")} /> 
+              </View>
+              <View style={styles.containerContent}>
+                <View style={styles.containerDes}>
+                  <Text>
+                    <Text style={styles.textName}>{name}</Text>
+                    <Text style={styles.textDes}>
+                      {} đã bình luận về bài viết của bạn.
+                    </Text>
+                  </Text>
+                </View>
+                <View style={styles.containerTime}>
+                  <Text style={styles.textTime}>{formatDate(datetime)}</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      default:
+        return null;
+    }
+  })}
+
+
+          
         </ScrollView>
       </View>
     </View>
@@ -54,13 +242,34 @@ const styles = StyleSheet.create({
     borderBottomRightRadius:30,
     borderBottomLeftRadius:30,
   },
+  containerContent:{
+    paddingLeft:8,
+  },
   containerList:{
     height:"100%",
-    width:"95%",
+    width:"100%",
+    paddingRight: "4%",
+    paddingLeft: "4%",
   },
-  containerItem:{
-    flexDirection:"row"
+  containerDes:{
+    width:"87.5%",
     
+  },
+  // btn:{
+  //   flexDirection:"row",
+  //   backgroundColor:"#FFF6F6",
+  //   marginTop:"2%",
+  //   minHeight:"10.5%",
+  //   alignItems:"center",
+  //   borderRadius: 14,
+  // },
+  containerItem:{
+    flexDirection:"row",
+    backgroundColor:"rgba(244, 175, 174, 0.15)",
+    marginTop:6,
+    minHeight:88,
+    alignItems:"center",
+    borderRadius: 14,
   },
   textHeader:{
     fontFamily: "lexend-medium",
@@ -85,12 +294,31 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -6,
     right: -14,
-    width: 35,
-    height: 35,
+    width: 30,
+    height: 30,
     borderColor: "#A51A29",
 },
-//   containerListTask: {
-//     width: "100%",
-//     // marginBottom: "50%",
-// },
+textName:{
+  fontFamily: "lexend-medium",
+  fontSize: 13,
+  fontWeight: "bold",
+},
+textDes:{
+  fontFamily: "lexend-regular",
+  fontSize: 13,
+  fontWeight:600,
+  color:"rgba(0, 0, 0, 0.7)"
+},
+containerTime:{
+  paddingTop:4
+},
+textTime:{
+  fontFamily: "lexend-regular",
+  fontSize: 13,
+  fontWeight:600,
+  color:"rgba(0, 0, 0, 0.4)"
+},
+seenColor:{
+  backgroundColor:"rgba(244, 175, 174, 0.60)",
+}
 });
