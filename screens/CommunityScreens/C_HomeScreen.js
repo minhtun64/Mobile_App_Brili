@@ -27,7 +27,7 @@ import TextAnimation from "../../components/TextAnimation";
 
 export default function C_HomeScreen({ navigation }) {
   const myUserId = "10"; // VÍ DỤ
-
+  const [myAvatar, setMyAvatar] = useState(null);
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
   useEffect(() => {
@@ -56,6 +56,12 @@ export default function C_HomeScreen({ navigation }) {
 
   const fetchRecentPosts = async () => {
     try {
+      const userRef = ref(database, `user/${myUserId}`);
+      onValue(userRef, async (snapshot) => {
+        const userData = snapshot.val();
+        setMyAvatar(userData.avatar);
+      });
+
       // Lấy danh sách bài đăng từ Firebase
       const postsRef = ref(database, "post");
       onValue(postsRef, async (snapshot) => {
@@ -174,7 +180,7 @@ export default function C_HomeScreen({ navigation }) {
 
   //VIDEO
   const video = React.useRef(null);
-  const [status, setStatus] = React.useState({});
+  const [status, setStatus] = React.useState(false);
   const [isMuted, setIsMuted] = React.useState(true);
 
   if (!fontLoaded) {
@@ -206,11 +212,14 @@ export default function C_HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
           <View style={styles.row}>
-            <TouchableOpacity>
-              <Image
-                style={styles.avatar60}
-                source={require("../../assets/images/myavatar.png")}
-              ></Image>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("C_Profile", {
+                  userId: myUserId,
+                })
+              }
+            >
+              <Image style={styles.avatar60} source={{ uri: myAvatar }}></Image>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate("C_StatusPosting")}
@@ -319,10 +328,11 @@ export default function C_HomeScreen({ navigation }) {
                           source={{ uri: post.media }}
                           ref={video}
                           resizeMode="cover"
-                          shouldPlay={true}
+                          // shouldPlay={true}
+                          shouldPlay={false}
                           isLooping={true}
                           useNativeControls
-                          isMuted={isMuted}
+                          isMuted={true}
                           resizeMode={ResizeMode.CONTAIN}
                           onPlaybackStatusUpdate={(status) =>
                             setStatus(() => status)
@@ -435,6 +445,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     marginLeft: 20,
+    borderRadius: 50,
   },
   frame_post: {
     width: 324,
@@ -537,8 +548,9 @@ const styles = StyleSheet.create({
   },
   status_image: {
     width: 320,
-    height: 180,
-    resizeMode: "contain",
+    aspectRatio: 1 / 1,
+    // height: 180,
+    // resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
     borderRadius: 12,

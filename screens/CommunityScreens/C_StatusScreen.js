@@ -1167,8 +1167,19 @@ const styles = StyleSheet.create({
   },
   status_image: {
     width: 320,
-    height: 180,
-    resizeMode: "contain",
+    aspectRatio: 1 / 1,
+    // height: 180,
+    // resizeMode: "contain",
+    alignSelf: "center",
+    margin: 8,
+    borderRadius: 12,
+    //transform: [{ scale: this.state.scaleValue }],
+  },
+
+  status_video: {
+    width: 300,
+    height: 533,
+    // resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
     borderRadius: 12,

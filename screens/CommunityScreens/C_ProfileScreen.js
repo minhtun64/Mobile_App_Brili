@@ -15,12 +15,15 @@ import {
   Dimensions,
   RefreshControl,
 } from "react-native";
+import DropDownPicker from "react-native-dropdown-picker";
+import { useForm, Controller } from "react-hook-form";
 import React, {
   Component,
   useEffect,
   useState,
   useLayoutEffect,
   useRef,
+  useCallback,
 } from "react";
 import {
   useNavigation,
@@ -31,7 +34,9 @@ import {
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
-import { AntDesign } from "@expo/vector-icons";
+
+import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { Snackbar } from "react-native-paper";
 
 import { storage, database } from "../../firebase";
 import {
@@ -45,20 +50,29 @@ import {
   update,
   remove,
 } from "firebase/database";
+import {
+  getDownloadURL,
+  getStorage,
+  uploadBytes,
+  ref as storageRef,
+  deleteObject,
+} from "firebase/storage";
 
 import { formatDate } from "../../components/utils";
 import getStatusInfo from "../../firebase_functions/getStatusInfo";
 import moment from "moment";
-import { Audio } from "expo-av";
+import { Audio, Video, ResizeMode } from "expo-av";
+import * as ImagePicker from "expo-image-picker";
+import * as VideoPicker from "expo-image-picker";
+import { requestMediaLibraryPermissionsAsync } from "expo-image-picker";
 
 export default function C_ProfileScreen({ navigation }) {
   const myUserId = "10"; // VÍ DỤ
+  const [myProfile, setMyProfile] = useState(false);
 
   // LẤY THAM SỐ ĐƯỢC TRUYỀN TỪ MÀN HÌNH TRƯỚC
   const route = useRoute();
   const userId = route?.params?.userId;
-  console.log(userId);
-  // console.log(userId);
 
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -104,6 +118,10 @@ export default function C_ProfileScreen({ navigation }) {
   const [isLiked, setIsLiked] = useState(Array(posts.length).fill(false));
 
   const fetchProfile = async () => {
+    if (userId === myUserId) {
+      setMyProfile(true);
+    }
+
     // Load user data
     const nameRef = ref(database, `user/${userId}/name`);
     const avatarRef = ref(database, `user/${userId}/avatar`);
@@ -403,6 +421,416 @@ export default function C_ProfileScreen({ navigation }) {
     }
   };
 
+  // Thêm state để lưu trữ thông tin bài viết hiện tại
+  const [modalVisible2, setModalVisible2] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [currentPost, setCurrentPost] = useState(null);
+
+  // Hàm xử lý khi nhấn vào icon Option
+  const handleOptionPress = (post) => {
+    setCurrentPost(post);
+    // console.log(post);
+    // Hiển thị modal chỉnh sửa hoặc xóa bài viết
+    if (post.mediaType == "image") {
+      setImage(post.media);
+      setIsSelected(true);
+    } else if (post.mediaType == "video") {
+      setVideo(post.media);
+      setIsSelected(true);
+    }
+    if (post.content) {
+      setValue(post.content);
+    }
+    setModalVisible2(true);
+  };
+
+  //VIDEO
+  const video2 = React.useRef(null);
+  const [status, setStatus] = React.useState(false);
+  const [isMuted, setIsMuted] = React.useState(true);
+
+  // Hàm xử lý khi nhấn vào nút "Chỉnh sửa bài viết" trong modal
+  const handleEditPost = () => {
+    // Đóng modal chỉnh sửa
+    setModalVisible2(false);
+    // Hiển thị modal nội dung bài viết để chỉnh sửa
+    setEditModalVisible(true);
+  };
+
+  const handleDeletePost = () => {
+    setModalVisible2(false);
+    setDeleteModalVisible(true);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+  };
+
+  const [showSnackbar2, setShowSnackbar2] = useState(false);
+  const handleConfirmDelete = async () => {
+    // Xóa bài viết khỏi Firebase
+    const postRef = ref(database, `post/${currentPost.postId}`);
+    const likeRef = ref(database, `like/${currentPost.postId}`);
+    try {
+      await remove(postRef);
+      await remove(likeRef);
+
+      // Xóa ảnh từ storage (nếu có)
+      if (currentPost.mediaType === "image" && currentPost.media) {
+        const storageReference = storageRef(
+          storage,
+          `Status_Images/${currentPost.postId}`
+        );
+        // await deleteObject(storageReference);
+      }
+
+      // Xóa video từ storage (nếu có)
+      if (currentPost.mediaType === "video" && currentPost.media) {
+        const storageReference = storageRef(
+          storage,
+          `Status_Videos/${currentPost.postId}`
+        );
+        await deleteObject(storageReference);
+      }
+
+      // Đóng modal xóa bài viết
+      setDeleteModalVisible(false);
+      // Hiển thị snackbar thành công
+      setShowSnackbar2(true);
+      setTimeout(() => setShowSnackbar2(false), 2000); // Hide snackbar after 2 seconds
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  };
+
+  //CHỈNH SỬA BÀI VIẾT
+  const handleEditProfilePress = () => {
+    setEditProfileModalVisible(true);
+    setEditName(name);
+    setEditIntro(intro);
+    setEditAvatar(avatar);
+    setEditWallpaper(wallpaper);
+  };
+
+  const [showSnackbar1, setShowSnackbar1] = useState(false);
+  const [value, setValue] = useState("");
+  const [media, setMedia] = useState("");
+  const handleUpdatePost = async () => {
+    if (
+      currentPost.content === value &&
+      (currentPost.media === image || currentPost.media === video)
+    ) {
+      // Nếu không có thay đổi nội dung và phương tiện, không thực hiện cập nhật
+      console.log("Không cập nhật");
+      setEditModalVisible(false);
+      return;
+    }
+
+    const updatedPostRef = ref(database, `post/${currentPost.postId}`);
+    const updatedPostData = { ...currentPost, content: value };
+    if (currentPost.media != image && video == null) {
+      if (isSelected) {
+        const response = await fetch(image);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Status_Images/${currentPost.postId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          updatedPostData.media = url;
+          updatedPostData.mediaType = "image";
+        } catch (error) {
+          console.log("Error uploading image:", error);
+        }
+      } else {
+        const storageReference = storageRef(
+          storage,
+          `Status_Images/${currentPost.postId}`
+        );
+        try {
+          await deleteObject(storageReference);
+          updatedPostData.media = null;
+          updatedPostData.mediaType = null;
+        } catch (error) {
+          console.log("Error deleting image:", error);
+        }
+      }
+    }
+    if (currentPost.media != video && image == null) {
+      if (isSelected) {
+        const response = await fetch(video);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Status_Videos/${currentPost.postId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          updatedPostData.media = url;
+          updatedPostData.mediaType = "video";
+        } catch (error) {
+          console.log("Error uploading video:", error);
+        }
+      } else {
+        const storageReference = storageRef(
+          storage,
+          `Status_Videos/${currentPost.postId}`
+        );
+        try {
+          await deleteObject(storageReference);
+          updatedPostData.media = null;
+          updatedPostData.mediaType = null;
+        } catch (error) {
+          console.log("Error deleting video:", error);
+        }
+      }
+    }
+
+    try {
+      await update(updatedPostRef, updatedPostData);
+      console.log("Bài viết đã được cập nhật thành công");
+      // Tiến hành cập nhật thành công, bạn có thể thực hiện các hành động khác
+      // Hiển thị snackbar thành công
+      setShowSnackbar1(true);
+      setTimeout(() => setShowSnackbar1(false), 2000); // Hide snackbar after 2 seconds
+    } catch (error) {
+      console.log("Lỗi khi cập nhật bài viết:", error);
+      // Xử lý lỗi khi cập nhật bài viết
+    }
+
+    setEditModalVisible(false);
+  };
+
+  // CHỌN/XÓA ẢNH
+  const [image, setImage] = useState(null);
+  const [isSelected, setIsSelected] = useState(false);
+  const pickImage = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelected(true);
+      setImage(result.assets[0].uri);
+    }
+  };
+  const removeImage = () => {
+    setIsSelected(false);
+    setImage(null);
+  };
+
+  // CHỌN/XÓA VIDEO
+  const [video, setVideo] = useState(null);
+  const pickVideo = async () => {
+    const { status } = await VideoPicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await VideoPicker.launchImageLibraryAsync({
+      mediaTypes: VideoPicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelected(true);
+      setVideo(result.assets[0].uri);
+    }
+  };
+  const removeVideo = () => {
+    setIsSelected(false);
+    setVideo(null);
+  };
+
+  //CHỈNH SỬA TRANG CÁ NHÂN
+  const [showSnackbar3, setShowSnackbar3] = useState(false);
+  const [editName, setEditName] = useState(null);
+  const [editIntro, setEditIntro] = useState(null);
+  const handleUpdateProfile = async () => {
+    if (
+      name === editName &&
+      intro === editIntro &&
+      avatar === editAvatar &&
+      wallpaper === editWapper
+    ) {
+      console.log("Không cập nhật");
+      setEditProfileModalVisible(false);
+      return;
+    }
+
+    const updatedUserRef = ref(database, `user/${userId}`);
+    const userSnapshot = await get(updatedUserRef);
+    let updatedUserData = userSnapshot.val();
+
+    if (name != editName) {
+      updatedUserData = { ...updatedUserData, name: editName };
+    }
+
+    if (intro != editIntro) {
+      updatedUserData = { ...updatedUserData, intro: editIntro };
+    }
+
+    if (avatar != editAvatar) {
+      if (isSelectedAvatar) {
+        const response = await fetch(editAvatar);
+        const blob = await response.blob();
+        const storageReference = storageRef(storage, `Avatar_Images/${userId}`);
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          updatedUserData.avatar = url;
+        } catch (error) {
+          console.log("Error uploading avatar:", error);
+        }
+      } else {
+        const storageReference = storageRef(storage, `Avatar_Images/${userId}`);
+        try {
+          await deleteObject(storageReference);
+          updatedUserData.avatar = null;
+        } catch (error) {
+          console.log("Error deleting avatar:", error);
+        }
+      }
+    }
+
+    if (wallpaper != editWallpaper) {
+      if (isSelectedWallpaper) {
+        const response = await fetch(editWallpaper);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Wallpaper_Images/${userId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          updatedUserData.wallpaper = url;
+        } catch (error) {
+          console.log("Error uploading wallpaper:", error);
+        }
+      } else {
+        const storageReference = storageRef(
+          storage,
+          `Wallpaper_Images/${userId}`
+        );
+        try {
+          await deleteObject(storageReference);
+          updatedUserData.wallpaper = null;
+        } catch (error) {
+          console.log("Error deleting wallpaper:", error);
+        }
+      }
+    }
+
+    try {
+      await update(updatedUserRef, updatedUserData);
+      console.log("Trang cá nhân đã được cập nhật thành công");
+      // Tiến hành cập nhật thành công, bạn có thể thực hiện các hành động khác
+      // Hiển thị snackbar thành công
+      setShowSnackbar3(true);
+      setTimeout(() => setShowSnackbar3(false), 2000); // Hide snackbar after 2 seconds
+      handleRefresh();
+    } catch (error) {
+      console.log("Lỗi khi cập nhật trang cá nhân:", error);
+    }
+    setEditProfileModalVisible(false);
+  };
+
+  // CHỌN/XÓA ẢNH ĐẠI DIỆN
+  const [editAvatar, setEditAvatar] = useState(null);
+  const [isSelectedAvatar, setIsSelectedAvatar] = useState(true);
+  const pickAvatar = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelectedAvatar(true);
+      setEditAvatar(result.assets[0].uri);
+    }
+  };
+  const removeAvatar = () => {
+    setIsSelectedAvatar(false);
+    setEditAvatar(null);
+  };
+
+  // CHỌN/XÓA ẢNH TƯỜNG
+  const [editWallpaper, setEditWallpaper] = useState(null);
+  const [isSelectedWallpaper, setIsSelectedWallpaper] = useState(true);
+  const pickWallpaper = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelectedWallpaper(true);
+      setEditWallpaper(result.assets[0].uri);
+    }
+  };
+  const removeWallpaper = () => {
+    setIsSelectedWallpaper(false);
+    setEditWallpaper(null);
+  };
+
+  // THÊM THÚ CƯNG
+  const [addPetName, setAddPetName] = useState(null);
+  const [addPetType, setAddPetType] = useState(null);
+  const [addPetBreed, setAddPetBreed] = useState(null);
+  const [addPetHairColor, setAddPetHairColor] = useState(null);
+  const [addPetModalVisible, setAddPetModalVisible] = useState(false);
+  const { handleSubmit, control } = useForm();
+
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [type, setType] = useState([
+    { label: "Hamster", value: 1 },
+    { label: "Mèo", value: 2 },
+    { label: "Chó", value: 3 },
+  ]);
+  const [hairColorOpen, setHairColorOpen] = useState(false);
+  const [hairColor, setHairColor] = useState([
+    { label: "Vàng", value: "Vàng" },
+    { label: "Trắng", value: "Trắng" },
+    { label: "Đen", value: "Đen" },
+    { label: "Nâu", value: "Nâu" },
+    { label: "Trắng đen", value: "Trắng đen" },
+    { label: "Vàng trắng", value: "Vàng trắng" },
+    { label: "Nâu đen", value: "Nâu đen" },
+    { label: "Xám", value: "Xám" },
+  ]);
+  const onTypeOpen = useCallback(() => {
+    setHairColorOpen(false);
+  }, []);
+
+  const onHairColorOpen = useCallback(() => {
+    setTypeOpen(false);
+  }, []);
+
   if (!fontLoaded) {
     return null;
   }
@@ -461,26 +889,39 @@ export default function C_ProfileScreen({ navigation }) {
         )}
 
         <View style={styles.row4}>
-          <TouchableOpacity style={styles.chat_border}>
-            <Image
-              style={styles.chat}
-              source={require("../../assets/icons/chat.png")}
-            ></Image>
-          </TouchableOpacity>
-          {isFollowing ? (
+          {!myProfile && (
+            <TouchableOpacity style={styles.chat_border}>
+              <Image
+                style={styles.chat}
+                source={require("../../assets/icons/chat.png")}
+              ></Image>
+            </TouchableOpacity>
+          )}
+          {myProfile ? (
             <TouchableOpacity
-              style={styles.following_button}
-              onPress={handleFollowButton}
+              style={styles.myedit_button}
+              onPress={handleEditProfilePress}
             >
-              <Text style={styles.following_text}>Đang theo dõi</Text>
+              <Text style={styles.following_text}>Chỉnh sửa trang cá nhân</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              style={styles.follow_button}
-              onPress={handleFollowButton}
-            >
-              <Text style={styles.follow_text}>Theo dõi</Text>
-            </TouchableOpacity>
+            <View>
+              {isFollowing ? (
+                <TouchableOpacity
+                  style={styles.following_button}
+                  onPress={handleFollowButton}
+                >
+                  <Text style={styles.following_text}>Đang theo dõi</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.follow_button}
+                  onPress={handleFollowButton}
+                >
+                  <Text style={styles.follow_text}>Theo dõi</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
         <View style={styles.info}>
@@ -516,57 +957,94 @@ export default function C_ProfileScreen({ navigation }) {
         </View>
         {pets.length > 0 && (
           <View style={styles.pet_frame}>
-            <View style={styles.row3}>
-              {pets.map((pet, index) => (
-                <View key={index}>
+            <ScrollView
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+            >
+              <View style={styles.row3}>
+                {myProfile && (
                   <TouchableOpacity
-                    style={{
-                      marginRight: 8,
-                      marginLeft: 8,
-                    }}
-                    onPress={() => openPetInfo(index)}
+                    style={styles.add_pet}
+                    onPress={() => setAddPetModalVisible(true)}
                   >
-                    {pet.avatar && (
-                      <Image
-                        style={styles.pet_img}
-                        source={{ uri: pet.avatar }}
-                      ></Image>
-                    )}
-
-                    <View
-                      style={StyleSheet.flatten([
-                        styles.row3,
-                        {
-                          alignSelf: "center",
-                          backgroundColor: "#ffffff",
-                          paddingTop: 4,
-                          marginTop: 8,
-                          padding: 4,
-                          borderRadius: 12,
-                        },
-                      ])}
+                    <Ionicons name="add" size={24} color="#F5817E" />
+                  </TouchableOpacity>
+                )}
+                {pets.map((pet, index) => (
+                  <View key={index}>
+                    <TouchableOpacity
+                      style={{
+                        marginRight: 8,
+                        marginLeft: 8,
+                      }}
+                      onPress={() => openPetInfo(index)}
                     >
-                      <Image
+                      {pet.avatar && (
+                        <Image
+                          style={styles.pet_img}
+                          source={{ uri: pet.avatar }}
+                        ></Image>
+                      )}
+
+                      <View
                         style={StyleSheet.flatten([
-                          styles.chat,
+                          styles.row3,
                           {
-                            marginRight: 4,
+                            alignSelf: "center",
+                            backgroundColor: "#ffffff",
+                            paddingTop: 4,
+                            marginTop: 8,
+                            padding: 4,
+                            borderRadius: 12,
                           },
                         ])}
-                        source={require("../../assets/images/icon-hamster.png")}
-                      ></Image>
-                      <Text
-                        style={{
-                          fontFamily: "lexend-regular",
-                        }}
                       >
-                        {pet.name}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
+                        {pet.type === 1 && (
+                          <Image
+                            style={StyleSheet.flatten([
+                              styles.chat,
+                              {
+                                marginRight: 4,
+                              },
+                            ])}
+                            source={require("../../assets/images/icon-hamster.png")}
+                          ></Image>
+                        )}
+                        {pet.type === 2 && (
+                          <Image
+                            style={StyleSheet.flatten([
+                              styles.chat,
+                              {
+                                marginRight: 4,
+                              },
+                            ])}
+                            source={require("../../assets/images/icon-cat.png")}
+                          ></Image>
+                        )}
+                        {pet.type === 3 && (
+                          <Image
+                            style={StyleSheet.flatten([
+                              styles.chat,
+                              {
+                                marginRight: 4,
+                              },
+                            ])}
+                            source={require("../../assets/images/icon-dog.png")}
+                          ></Image>
+                        )}
+                        <Text
+                          style={{
+                            fontFamily: "lexend-regular",
+                          }}
+                        >
+                          {pet.name}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
 
             {pet && (
               <Modal
@@ -600,7 +1078,7 @@ export default function C_ProfileScreen({ navigation }) {
                     <TouchableOpacity
                       style={{
                         position: "absolute",
-                        top: 28,
+                        top: 18,
                         right: 20,
                         zIndex: 1,
                       }}
@@ -655,19 +1133,40 @@ export default function C_ProfileScreen({ navigation }) {
                         <Text style={styles.pet_name}>{pet.name}</Text>
                         <View style={styles.row3}>
                           <Text style={styles.pet_pro}>Loài: </Text>
-                          <Text style={styles.pet_pro_val}>{pet.type}</Text>
+                          {pet.type === 1 && (
+                            <Text style={styles.pet_pro_val}>Hamster</Text>
+                          )}
+                          {pet.type === 2 && (
+                            <Text style={styles.pet_pro_val}>Mèo</Text>
+                          )}
+                          {pet.type === 3 && (
+                            <Text style={styles.pet_pro_val}>Chó</Text>
+                          )}
                         </View>
                         <View style={styles.row3}>
                           <Text style={styles.pet_pro}>Giống: </Text>
-                          <Text style={styles.pet_pro_val}>Winter White</Text>
+                          <Text style={styles.pet_pro_val}>{pet.breed}</Text>
                         </View>
                         <View style={styles.row3}>
                           <Text style={styles.pet_pro}>Giới tính: </Text>
-                          <Text style={styles.pet_pro_val}>Cái</Text>
+                          {pet.gender === 0 && (
+                            <Text style={styles.pet_pro_val}>Cái</Text>
+                          )}
+                          {pet.gender === 1 && (
+                            <Text style={styles.pet_pro_val}>Đực</Text>
+                          )}
                         </View>
                         <View style={styles.row3}>
                           <Text style={styles.pet_pro}>Tuổi: </Text>
-                          <Text style={styles.pet_pro_val}>1</Text>
+                          <Text style={styles.pet_pro_val}>
+                            {Math.floor(
+                              moment().diff(
+                                moment(pet.birthdate, "DD-MM-YYYY"),
+                                "years",
+                                true
+                              )
+                            )}
+                          </Text>
                         </View>
                         <View style={styles.row3}>
                           <Text style={styles.pet_pro}>Cân nặng: </Text>
@@ -675,7 +1174,9 @@ export default function C_ProfileScreen({ navigation }) {
                         </View>
                         <View style={styles.row3}>
                           <Text style={styles.pet_pro}>Màu lông: </Text>
-                          <Text style={styles.pet_pro_val}>Xám trắng</Text>
+                          <Text style={styles.pet_pro_val}>
+                            {pet.hairColor}
+                          </Text>
                         </View>
                       </View>
                       <Image
@@ -747,7 +1248,7 @@ export default function C_ProfileScreen({ navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleOptionPress(post)}>
                     {/* Tùy chọn Status */}
                     <Image
                       style={styles.status_option}
@@ -759,14 +1260,44 @@ export default function C_ProfileScreen({ navigation }) {
                 <Text style={styles.status_content} selectable={true}>
                   {post.content}
                 </Text>
-                {/* Ảnh / Video Status */}
+                {/* Ảnh/Video Status */}
                 {post.media && (
-                  <TouchableOpacity>
-                    <Image
-                      style={styles.status_image}
-                      source={{ uri: post.media }}
-                    />
-                  </TouchableOpacity>
+                  <View>
+                    {post.mediaType == "image" ? (
+                      <Image
+                        style={styles.status_image}
+                        source={{ uri: post.media }}
+                      />
+                    ) : (
+                      <TouchableOpacity>
+                        <Video
+                          style={styles.status_video}
+                          source={{ uri: post.media }}
+                          ref={video2}
+                          resizeMode="cover"
+                          // shouldPlay={true}
+                          shouldPlay={false}
+                          isLooping={true}
+                          useNativeControls
+                          isMuted={true}
+                          resizeMode={ResizeMode.CONTAIN}
+                          onPlaybackStatusUpdate={(status) =>
+                            setStatus(() => status)
+                          }
+                        />
+                        {/* <View>
+                          <Button
+                            title={status.isPlaying ? "Pause" : "Play"}
+                            onPress={() =>
+                              status.isPlaying
+                                ? video.current.pauseAsync()
+                                : video.current.playAsync()
+                            }
+                          />
+                        </View> */}
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
                 {/* Like / Comment / Share */}
                 <View style={styles.row6}>
@@ -808,15 +1339,806 @@ export default function C_ProfileScreen({ navigation }) {
         </View>
         {/* BÀI VIẾT */}
       </ScrollView>
+
+      {/* Thêm component Modal để hiển thị modal chỉnh sửa và xóa bài viết */}
+      <Modal
+        visible={modalVisible2}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setModalVisible2(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          // onPress={closePetInfo}
+          onPress={() => setModalVisible2(false)}
+        >
+          <View style={styles.modalOptionBackground}>
+            <View style={styles.line2}></View>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handleEditPost}
+            >
+              <View style={styles.row8}>
+                <Image
+                  style={styles.modalOptionIcon}
+                  source={require("../../assets/icons/edit.png")}
+                />
+                <Text style={styles.modalOptionText}>Chỉnh sửa bài viết</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.line}></View>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handleDeletePost}
+            >
+              <View style={styles.row8}>
+                <Image
+                  style={styles.modalOptionIcon}
+                  source={require("../../assets/icons/delete.png")}
+                />
+                <Text style={styles.modalOptionText}>Xóa bài viết</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Thêm component Modal để hiển thị modal chỉnh sửa */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          // onPress={closePetInfo}
+          onPress={() => setEditModalVisible(false)}
+        >
+          <View style={styles.container2}>
+            {/* heading */}
+            <View style={styles.heading2}>
+              <View style={styles.row}>
+                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                  <Text style={styles.cancel}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.post_button}
+                  onPress={handleUpdatePost}
+                  disabled={value === ""}
+                >
+                  <Text style={styles.post}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.row3}>
+                {/* Ảnh đại diện người đăng */}
+                <Image style={styles.avatar40} source={{ uri: avatar }}></Image>
+                <View>
+                  {/* Tên người đăng */}
+                  <Text style={styles.account_name2}>{name}</Text>
+                  {/* Thời gian đăng */}
+                  <TouchableOpacity style={styles.set_public}>
+                    <View style={styles.row2}>
+                      <Text style={styles.public}>Công khai</Text>
+                      <Image
+                        style={styles.arrow_down}
+                        source={require("../../assets/icons/arrow-down.png")}
+                      ></Image>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TextInput
+                style={styles.status_input}
+                placeholder="Hôm nay tâm trạng thú cưng của bạn như thế nào?"
+                value={value}
+                onChangeText={setValue}
+                multiline={true}
+              ></TextInput>
+              {isSelected ? (
+                <View
+                  style={{
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                    marginTop: 28,
+                  }}
+                >
+                  {image && (
+                    <Image
+                      source={{ uri: image }}
+                      style={{
+                        width: 250,
+                        height: 250,
+                        borderRadius: 12,
+                      }}
+                    />
+                  )}
+                  {video && (
+                    <Video
+                      source={{ uri: video }}
+                      // style={styles.previewVideo}
+                      style={{
+                        width: 320,
+                        height: 180,
+                        borderRadius: 12,
+                      }}
+                      useNativeControls
+                      resizeMode="contain"
+                    />
+                  )}
+                  <TouchableOpacity
+                    onPress={removeImage}
+                    style={{ position: "absolute", top: 8, right: 8 }}
+                  >
+                    <AntDesign name="close" size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Image
+                  source={require("../../assets/images/background-posting-status.png")}
+                  style={styles.background}
+                ></Image>
+              )}
+
+              <View style={styles.row2}>
+                <TouchableOpacity onPress={pickImage}>
+                  <ImageBackground
+                    source={require("../../assets/images/post_image.jpg")}
+                    style={styles.post_media}
+                    borderRadius={10}
+                  >
+                    <Text style={styles.label}>Chọn Ảnh</Text>
+                  </ImageBackground>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={pickVideo}>
+                  <ImageBackground
+                    source={require("../../assets/images/post-image.gif")}
+                    style={styles.post_media}
+                    borderRadius={10}
+                  >
+                    <Text style={styles.label}>Chọn Video</Text>
+                  </ImageBackground>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal
+        visible={deleteModalVisible}
+        animationType="fade"
+        transparent={true}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          // onPress={closePetInfo}
+          onPress={() => setDeleteModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Xác nhận xóa bài viết?</Text>
+
+            <View style={styles.row9}>
+              <TouchableOpacity
+                onPress={handleCancelDelete}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.buttonText1}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                style={styles.deleteButton}
+              >
+                <Text style={styles.buttonText2}>Xóa</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Snackbar
+        visible={showSnackbar1}
+        // visible={true}
+        onDismiss={() => setShowSnackbar1(false)}
+        duration={2000}
+        // action={{
+        //   label: "Dismiss",
+        //   onPress: () => setShowSnackbar(false),
+        // }}
+        style={{ backgroundColor: "white" }}
+        theme={{ colors: { text: "white" } }}
+      >
+        <View style={styles.row10}>
+          <Ionicons name="md-checkmark-circle" size={28} color="green" />
+          <Text style={styles.snackbarText}>
+            Bài viết đã được cập nhật thành công
+          </Text>
+        </View>
+      </Snackbar>
+      <Snackbar
+        visible={showSnackbar2}
+        onDismiss={() => setShowSnackbar2(false)}
+        duration={2000}
+        style={{ backgroundColor: "white" }}
+        theme={{ colors: { text: "white" } }}
+      >
+        <View style={styles.row10}>
+          <Ionicons name="md-checkmark-circle" size={28} color="green" />
+          <Text style={styles.snackbarText}>
+            Bài viết đã được xóa thành công
+          </Text>
+        </View>
+      </Snackbar>
+
+      {/* Thêm component Modal để hiển thị modal chỉnh sửa trang cá nhân */}
+      <Modal
+        visible={editProfileModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditProfileModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          onPress={() => setEditProfileModalVisible(false)}
+        >
+          <View style={styles.container1}>
+            {/* heading */}
+            <View style={styles.heading2}>
+              <View style={styles.row}>
+                <TouchableOpacity
+                  onPress={() => setEditProfileModalVisible(false)}
+                >
+                  <Text style={styles.cancel}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.post_button}
+                  onPress={handleUpdateProfile}
+                  disabled={name === ""}
+                >
+                  <Text style={styles.post}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <TouchableOpacity
+                onPress={pickWallpaper}
+                style={{
+                  width: Dimensions.get("window").width,
+                  height: 142,
+                }}
+              >
+                {wallpaper && (
+                  <Image
+                    source={{ uri: editWallpaper }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                    }}
+                    // resizeMode="contain"
+                  />
+                )}
+              </TouchableOpacity>
+              {avatar && (
+                <TouchableOpacity onPress={pickAvatar}>
+                  <Image
+                    style={styles.avatar100}
+                    source={{ uri: editAvatar }}
+                  ></Image>
+                  {/* Màn hình xám trong suốt */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: 100,
+                      height: 100,
+                      marginTop: -46,
+                      // marginRight: 8,
+                      marginLeft: 16,
+                      borderColor: "#FFFFFF",
+                      borderWidth: 3,
+                      borderRadius: 50,
+                    }}
+                  >
+                    {/* Icon thay đổi ảnh */}
+                    <View>
+                      <Ionicons name="image-outline" size={24} color="white" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+              <View style={styles.info}>
+                <View style={styles.line3}></View>
+                <View style={styles.row12}>
+                  <Text style={styles.edit_label}>Tên</Text>
+                  <TextInput
+                    style={styles.edit_name_input}
+                    placeholder="Họ tên của bạn"
+                    value={editName}
+                    onChangeText={setEditName}
+                    multiline={true}
+                  ></TextInput>
+                </View>
+                <View style={styles.line3}></View>
+                <View style={styles.row12}>
+                  <Text style={styles.edit_label}>Tiểu sử</Text>
+                  <TextInput
+                    style={styles.edit_intro_input}
+                    placeholder="Tiểu sử của bạn"
+                    value={editIntro}
+                    onChangeText={setEditIntro}
+                    multiline={true}
+                  ></TextInput>
+                </View>
+                <View style={styles.line3}></View>
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Snackbar
+        visible={showSnackbar3}
+        // visible={true}
+        onDismiss={() => setShowSnackbar3(false)}
+        duration={2000}
+        style={{ backgroundColor: "white" }}
+        theme={{ colors: { text: "white" } }}
+      >
+        <View style={styles.row10}>
+          <Ionicons name="md-checkmark-circle" size={28} color="green" />
+          <Text style={styles.snackbarText}>
+            Trang cá nhân đã được cập nhật thành công
+          </Text>
+        </View>
+      </Snackbar>
+
+      <Modal
+        // animationType="slide"
+        transparent={true}
+        visible={addPetModalVisible}
+        onRequestClose={() => setAddPetModalVisible(false)}
+      >
+        <View
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          // onPress={() => setAddPetModalVisible(false)}
+        >
+          {/* Hình ảnh sẽ hiển thị trong Modal */}
+          <View
+            style={{
+              width: "100%",
+              height: 300,
+              backgroundColor: "#FFF6F6",
+              marginTop: -40,
+              borderRadius: 24,
+            }}
+          >
+            {/* Icon để đóng Modal */}
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                top: 18,
+                right: 20,
+                zIndex: 1,
+              }}
+              onPress={() => setAddPetModalVisible(false)}
+            >
+              <Image
+                source={require("../../assets/icons/close-red.png")}
+                style={{ width: 30, height: 30 }}
+              />
+            </TouchableOpacity>
+
+            <View style={styles.row7}>
+              <View
+                style={{
+                  width: 200,
+                  height: 200,
+                  backgroundColor: "#ffffff",
+                  borderRadius: 12,
+                  marginRight: 16,
+                }}
+              >
+                <TextInput
+                  style={styles.pet_name}
+                  placeholder="Tên thú cưng"
+                  value={addPetName}
+                  onChangeText={setAddPetName}
+                  // multiline={true}
+                ></TextInput>
+                <View style={styles.row3}>
+                  <Text style={styles.pet_pro}>Loài: </Text>
+                  <Controller
+                    name="gender"
+                    defaultValue=""
+                    control={control}
+                    render={({ field: { onChange, value } }) => (
+                      <View style={styles.dropdownType}>
+                        <DropDownPicker
+                          items={type}
+                          value={addPetType}
+                          open={typeOpen}
+                          setOpen={setTypeOpen}
+                          placeholder="Chọn loài"
+                          placeholderStyle={{ fontFamily: "lexend-light" }}
+                          setValue={setAddPetType}
+                          setItems={setType}
+                          containerStyle={{ height: 20, width: 140 }}
+                          style={styles.dropdown}
+                          labelStyle={{ fontFamily: "lexend-light" }}
+                          onOpen={onTypeOpen}
+                          onChangeValue={onChange}
+                          // itemStyle={{
+                          //   justifyContent: "flex-start",
+                          // }}
+                          dropDownStyle={{ backgroundColor: "#fafafa" }}
+                          zIndex={3000}
+                          zIndexInverse={1000}
+                        />
+                      </View>
+                    )}
+                  />
+                </View>
+                <View style={styles.row3}>
+                  <Text style={styles.pet_pro}>Giống: </Text>
+                  <TextInput
+                    style={styles.pet_pro_val}
+                    // placeholder="Tên thú cưng"
+                    value={addPetBreed}
+                    onChangeText={setAddPetBreed}
+                    // multiline={true}
+                  ></TextInput>
+                </View>
+                <View style={styles.row3}>
+                  <Text style={styles.pet_pro}>Giới tính: </Text>
+                  {/* {pet.gender === 0 && (
+                    <Text style={styles.pet_pro_val}>Cái</Text>
+                  )}
+                  {pet.gender === 1 && (
+                    <Text style={styles.pet_pro_val}>Đực</Text>
+                  )} */}
+                </View>
+                <View style={styles.row3}>
+                  <Text style={styles.pet_pro}>Tuổi: </Text>
+                  {/* <Text style={styles.pet_pro_val}>
+                    {Math.floor(
+                      moment().diff(
+                        moment(pet.birthdate, "DD-MM-YYYY"),
+                        "years",
+                        true
+                      )
+                    )}
+                  </Text> */}
+                </View>
+                <View style={styles.row3}>
+                  <Text style={styles.pet_pro}>Cân nặng: </Text>
+                  {/* <Text style={styles.pet_pro_val}>0.3 kg</Text> */}
+                </View>
+                <View style={styles.row3}>
+                  <Text style={styles.pet_pro}>Màu lông: </Text>
+                  {/* <Text style={styles.pet_pro_val}>{pet.hairColor}</Text> */}
+                </View>
+              </View>
+              <TouchableOpacity>
+                <Image
+                  style={styles.pet_img}
+                  source={require("../../assets/images/avatar_pet.png")}
+                ></Image>
+                {/* Màn hình xám trong suốt */}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: 134,
+                    width: 100,
+                    borderRadius: 12,
+                  }}
+                >
+                  {/* Icon thay đổi ảnh */}
+                  <View>
+                    <Ionicons name="image-outline" size={24} color="white" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  dropdownType: {
+    marginHorizontal: 10,
+    width: "50%",
+    marginBottom: 15,
+  },
+  dropdown: {
+    borderColor: "#B7B7B7",
+    height: 50,
+  },
+  line3: {
+    width: "100%",
+    height: 0.7,
+    backgroundColor: "#EFEBEB",
+    marginLeft: "auto",
+    marginRight: "auto",
+    borderRadius: "50%",
+  },
+  row12: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  edit_label: {
+    fontSize: 16,
+    color: "#8F1928",
+    fontFamily: "lexend-medium",
+  },
+  edit_name_input: {
+    fontSize: 18,
+    color: "#39A3C0",
+    fontFamily: "lexend-light",
+  },
+  edit_intro_input: {
+    fontSize: 18,
+    // height: 52,
+    color: "#39A3C0",
+    fontFamily: "lexend-light",
+  },
+  row10: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  snackbarText: {
+    fontSize: 16,
+    fontFamily: "lexend-light",
+    color: "green",
+    marginLeft: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 8,
+  },
+  modalText: {
+    fontSize: 18,
+    fontFamily: "lexend-medium",
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  cancelButton: {
+    marginRight: 10,
+    width: 80,
+    height: 40,
+    borderRadius: 4,
+    borderColor: "red",
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButton: {
+    backgroundColor: "red",
+    width: 80,
+    height: 40,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText1: {
+    color: "red",
+    fontSize: 16,
+    fontFamily: "lexend-medium",
+  },
+  buttonText2: {
+    color: "white",
+    fontSize: 16,
+    fontFamily: "lexend-medium",
+  },
+  row9: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingTop: 10,
+    alignItems: "center",
+  },
+  container2: {
+    width: "90%",
+    height: "80%",
+    marginLeft: "auto",
+    marginRight: "auto",
+    marginTop: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+  },
+  container1: {
+    width: "100%",
+    height: "90%",
+    marginTop: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+  },
+  heading2: {
+    width: "100%",
+    height: "8%",
+    borderRadius: 12,
+    backgroundColor: "#FFF6F6",
+  },
+  account_name2: {
+    fontSize: 16,
+    color: "#8F1928",
+    fontFamily: "lexend-semibold",
+  },
+  background: {
+    width: 300,
+    height: 300,
+    marginLeft: "auto",
+    marginRight: "auto",
+    marginTop: "7%",
+  },
+  set_public: {
+    padding: 4,
+    borderColor: "#8F1928",
+    borderRadius: 12,
+    borderStyle: "solid",
+    borderWidth: 1,
+    width: 86,
+  },
+  public: {
+    fontSize: 12,
+    color: "#8F1928",
+    fontFamily: "lexend-regular",
+  },
+  arrow_down: {
+    width: 12,
+    height: 12,
+    // marginRight: 4,
+    marginLeft: 8,
+  },
+  status_input: {
+    fontSize: 18,
+    padding: 16,
+    marginTop: 8,
+    fontFamily: "lexend-regular",
+  },
+  post_media: {
+    width: 120,
+    height: 80,
+    marginTop: 80,
+    marginRight: 30,
+    marginLeft: 30,
+  },
+  label: {
+    color: "white",
+    fontFamily: "lexend-regular",
+    marginTop: 54,
+    fontSize: 16,
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  cancel: {
+    fontSize: 16,
+    fontFamily: "lexend-light",
+  },
+  post: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "lexend-medium",
+  },
+  post_button: {
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 16,
+    paddingRight: 16,
+    backgroundColor: "#8F1928",
+    borderRadius: 12,
+    justifyContent: "center", // căn giữa theo chiều dọc
+    alignItems: "center", // căn giữa theo chiều ngang
+  },
   container: {
     width: "100%",
     height: "90%",
     backgroundColor: "#ffffff",
+  },
+  modalOptionBackground: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    height: "16%",
+    justifyContent: "space-around",
+    // alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#FCAC9E",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 32,
+  },
+  line: {
+    width: 360,
+    height: 1,
+    backgroundColor: "#FCAC9E",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  line2: {
+    width: 54,
+    height: 5,
+    backgroundColor: "#F5817E",
+    marginLeft: "auto",
+    marginRight: "auto",
+    borderRadius: "50%",
+  },
+  modalOptionIcon: {
+    width: 24,
+    height: 24,
+    marginLeft: 40,
+    marginRight: 20,
+  },
+  modalOptionText: {
+    color: "#A51A29",
+    fontFamily: "lexend-medium",
+    fontSize: 18,
+  },
+  row8: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    paddingTop: 10,
+    // paddingBottom: 10,
+    // alignItems: "center",
   },
   heading: {
     width: "100%",
@@ -853,7 +2175,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     paddingLeft: 16,
     paddingRight: 16,
     position: "absolute",
@@ -977,6 +2298,19 @@ const styles = StyleSheet.create({
     //marginLeft: "6%",
     //marginTop: -48,
   },
+  myedit_button: {
+    backgroundColor: "#ffffff",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#8F1928",
+    borderRadius: 12,
+    width: 180,
+    height: 25,
+    justifyContent: "center", // căn giữa theo chiều dọc
+    alignItems: "center", // căn giữa theo chiều ngang
+    marginRight: 24,
+    marginLeft: 16,
+  },
   following_button: {
     backgroundColor: "#ffffff",
     borderStyle: "solid",
@@ -1005,6 +2339,19 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     padding: 16,
     paddingTop: 8,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  add_pet: {
+    height: 134,
+    width: 100,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F5817E",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 36,
+    marginRight: 8,
   },
   pet_img: {
     height: 134,
@@ -1048,7 +2395,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    // marginTop: 20,
   },
   status: {
     backgroundColor: "white",
@@ -1115,7 +2462,17 @@ const styles = StyleSheet.create({
   },
   status_image: {
     width: 320,
-    height: 180,
+    aspectRatio: 1 / 1,
+    // height: 180,
+    // resizeMode: "contain",
+    alignSelf: "center",
+    margin: 8,
+    borderRadius: 12,
+    //transform: [{ scale: this.state.scaleValue }],
+  },
+  status_video: {
+    width: 300,
+    height: 533,
     // resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
@@ -1155,5 +2512,6 @@ const styles = StyleSheet.create({
     // marginRight: 8,
     // marginBottom: 16,
     margin: 20,
+    // marginBottom: 0,
   },
 });

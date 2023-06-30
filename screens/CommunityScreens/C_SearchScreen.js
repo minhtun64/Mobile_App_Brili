@@ -231,7 +231,6 @@ export default function C_SearchScreen({ navigation }) {
           onTouchEnd={onTouchEnd}
         >
           <Text style={styles.text}>MỌI NGƯỜI</Text>
-
           {searchedUsers.length > 0 ? (
             <View style={styles.newsfeed}>
               <View style={styles.account_list}>
@@ -259,7 +258,6 @@ export default function C_SearchScreen({ navigation }) {
                           </Text>
                         </View>
                       </View>
-
                       {/* Tùy chọn Follow */}
                       {user.userId !== myUserId &&
                         (user.isFollowing ? (
@@ -291,9 +289,7 @@ export default function C_SearchScreen({ navigation }) {
           ) : (
             <Text style={styles.no_result}>Không có kết quả tìm kiếm</Text>
           )}
-
           <Text style={styles.text}>BÀI VIẾT</Text>
-
           {searchedPosts.length > 0 ? (
             <View style={styles.newsfeed2}>
               {searchedPosts.map((post) => {
@@ -399,7 +395,7 @@ export default function C_SearchScreen({ navigation }) {
                     </View>
                   </TouchableOpacity>
                 );
-              })}{" "}
+              })}
             </View>
           ) : (
             <Text style={styles.no_result}>Không có kết quả tìm kiếm</Text>
@@ -791,7 +787,6 @@ export default function C_SearchScreen({ navigation }) {
                           </Text>
                         </View>
                       </View>
-
                       {/* Tùy chọn Follow */}
                       {user.userId !== myUserId &&
                         (user.isFollowing ? (
@@ -928,7 +923,6 @@ export default function C_SearchScreen({ navigation }) {
                         <Text style={styles.account_bio}>{user.userIntro}</Text>
                       </View>
                     </View>
-
                     {/* Tùy chọn Follow */}
                     {user.userId !== myUserId &&
                       (user.isFollowing ? (
