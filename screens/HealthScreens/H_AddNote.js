@@ -14,7 +14,7 @@ const NOTEBOOK = "NOTEBOOK";
 const HANDBOOK = "HANDBOOK";
 export default function H_NoteScreen({ navigation }) {
     //Ví dụ userid
-    const myUserId = "10"; 
+    // const myUserId = "10"; 
     const userId = 1;
     const [gender, setstatebtn] = useState(NOTEBOOK);
     const [fontLoaded, setFontLoaded] = useState(false);
