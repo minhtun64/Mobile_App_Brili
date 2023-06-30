@@ -24,6 +24,7 @@ import { onValue, ref, get, set, push } from "firebase/database";
 import getStatusInfo from "../../firebase_functions/getStatusInfo";
 import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
+import { saveNotification } from "../../components/utils";
 
 export default function C_HomeScreen({ navigation }) {
   const myUserId = "10"; // VÍ DỤ
@@ -159,6 +160,7 @@ export default function C_HomeScreen({ navigation }) {
           require("../../assets/soundeffects/like-sound.mp3")
         );
         await soundObject.playAsync();
+        await saveNotification(myUserId,'like',postId)
       }
       // Lấy dữ liệu bài viết đã được caching từ cachedPostData
       const updatedRecentPosts = recentPosts.map((post) => {
