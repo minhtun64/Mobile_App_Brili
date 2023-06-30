@@ -20,14 +20,28 @@ import React, {
   useLayoutEffect,
   useRef,
 } from "react";
-import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import {
+  useNavigation,
+  useScrollToTop,
+  useRoute,
+} from "@react-navigation/native";
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
 
+import { database } from "../../firebase";
+import { onValue, ref, get, set, push, remove } from "firebase/database";
+import moment from "moment";
+
 export default function C_FollowingListScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const myUserId = "10"; // VÍ DỤ
+
+  const route = useRoute();
+  const [followingUsers, setFollowingUsers] = useState(
+    route?.params?.followingUsers || []
+  );
 
   const { onTouchStart, onTouchEnd } = useSwipe(onSwipeLeft, onSwipeRight, 6);
 
@@ -59,10 +73,108 @@ export default function C_FollowingListScreen({ navigation }) {
     loadFont();
   }, []);
 
-  //Lưu ảnh
+  useEffect(() => {
+    const fetchData = async () => {
+      // Sắp xếp lại danh sách followingUsers
+      const sortedFollowingUsers = followingUsers.sort((a, b) => {
+        if (a.userId.toString() === myUserId) {
+          return -1; // Đưa tài khoản của bạn lên đầu danh sách
+        } else if (b.userId.toString() === myUserId) {
+          return 1; // Đưa tài khoản của bạn lên đầu danh sách
+        } else {
+          return 0; // Giữ nguyên vị trí của các người dùng khác
+        }
+      });
+
+      const getFollowingUsersInfo = async (followingUsers) => {
+        const usersInfo = await Promise.all(
+          followingUsers.map(async (user) => {
+            const userId = user.userId.toString();
+            const userRef = ref(database, `user/${userId}`);
+            const userSnapshot = await get(userRef);
+            const userData = userSnapshot.val();
+            const followRef = ref(database, `follow/${myUserId}/${userId}`);
+            const followSnapshot = await get(followRef);
+            const isFollowing = !!followSnapshot.exists();
+            return {
+              userId: userId,
+              userName: userData.name,
+              userAvatar: userData.avatar,
+              userIntro: userData.intro,
+              isFollowing: isFollowing,
+            };
+          })
+        );
+        return usersInfo;
+      };
+
+      const followingUsersInfo = await getFollowingUsersInfo(
+        sortedFollowingUsers
+      );
+      const updatedFollowingUsers = sortedFollowingUsers.map((user) => {
+        const userId = user.userId.toString();
+        const userInfo = followingUsersInfo.find(
+          (info) => info.userId === userId
+        );
+        return {
+          userId: userId,
+          userName: userInfo.userName,
+          userAvatar: userInfo.userAvatar,
+          userIntro: userInfo.userIntro,
+          isFollowing: userInfo.isFollowing,
+        };
+      });
+      setFollowingUsers(updatedFollowingUsers);
+    };
+    fetchData();
+  }, [followingUsers]);
+
+  // XỬ LÝ CÁC THAO TÁC QUẸT MÀN HÌNH
+  const panResponder = useSwipe(
+    () => {
+      // console.log("swiped left")
+    },
+    () => navigation.goBack(),
+    () => {
+      // console.log("swiped up")
+    },
+    () => {
+      // console.log("swiped down")
+    }
+  );
+
+  // THEO DÕI/HỦY THEO DÕI
+  const handleFollowButton = (userId, isFollowing) => {
+    if (isFollowing) {
+      // Hủy theo dõi
+      const followerRef = ref(database, `follow/${myUserId}/${userId}`);
+      remove(followerRef);
+      updateFollowingStatus(userId, false);
+    } else {
+      // Theo dõi
+      const followData = {
+        date: moment().format("DD-MM-YYYY HH:mm:ss"),
+      };
+      set(ref(database, `follow/${myUserId}/${userId}`), followData);
+      updateFollowingStatus(userId, true);
+    }
+  };
+  const updateFollowingStatus = (userId, isFollowing) => {
+    setFollowingUsers((prevUsers) =>
+      prevUsers.map((user) => {
+        if (user.userId === userId) {
+          return {
+            ...user,
+            isFollowing: isFollowing,
+          };
+        }
+        return user;
+      })
+    );
+  };
 
   if (!fontLoaded) {
-    return null; // or a loading spinner
+    return null;
   }
 
   return (
@@ -72,8 +184,7 @@ export default function C_FollowingListScreen({ navigation }) {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        {...panResponder.panHandlers}
       >
         {/* Nút quay lại */}
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -88,296 +199,63 @@ export default function C_FollowingListScreen({ navigation }) {
           </View>
 
           <View style={styles.account_list}>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/myavatar.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Đỗ Quỳnh Chi</Text>
+            {/* NỘI DUNG NGƯỜI DÙNG */}
+            {followingUsers.map((user) => (
+              <View style={styles.row} key={user.userId}>
+                <View style={styles.row3}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("C_Profile", {
+                        userId: user.userId,
+                      })
+                    }
+                  >
+                    {/* Ảnh đại diện người dùng */}
+                    <Image
+                      style={styles.avatar60}
+                      source={{ uri: user.userAvatar }}
+                    ></Image>
                   </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>LOVE</Text>
+                  <View>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("C_Profile", {
+                          userId: user.userId,
+                        })
+                      }
+                    >
+                      {/* Tên người dùng */}
+                      <Text style={styles.account_name}>{user.userName}</Text>
+                    </TouchableOpacity>
+                    {/* Tiểu sử người dùng */}
+                    <Text style={styles.account_bio}>{user.userIntro}</Text>
+                  </View>
                 </View>
+
+                {/* Tùy chọn Follow */}
+                {user.userId !== myUserId &&
+                  (user.isFollowing ? (
+                    <TouchableOpacity
+                      style={styles.following_button}
+                      onPress={() =>
+                        handleFollowButton(user.userId, user.isFollowing)
+                      }
+                    >
+                      <Text style={styles.following_text}>Đang theo dõi</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.follow_button}
+                      onPress={() =>
+                        handleFollowButton(user.userId, user.isFollowing)
+                      }
+                    >
+                      <Text style={styles.follow_text}>Theo dõi</Text>
+                    </TouchableOpacity>
+                  ))}
               </View>
-
-              {/* Tùy chọn Follow */}
-              {/* <TouchableOpacity style={styles.follow_button}>
-                  <Text style={styles.follow_text}>Theo dõi</Text>
-                </TouchableOpacity> */}
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-1.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Đặng Minh Tuấn</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>
-                    Cần cù thì bù siêng năng!
-                  </Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              {isFollowing && (
-                <TouchableOpacity
-                  style={styles.following_button}
-                  onPress={() => {
-                    setIsFollowing(!isFollowing);
-                  }}
-                >
-                  <Text style={styles.following_text}>Đang theo dõi</Text>
-                </TouchableOpacity>
-              )}
-              {!isFollowing && (
-                <TouchableOpacity
-                  style={styles.follow_button}
-                  onPress={() => {
-                    setIsFollowing(!isFollowing);
-                  }}
-                >
-                  <Text style={styles.follow_text}>Theo dõi</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-4.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Nguyễn Duy Tài</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>2k2</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-3.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Võ Thanh Phương</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>Trứng rán cần mỡ</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-5.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Minh Cường</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>I LOVE U</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-6.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Thanh Hiếu</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>IG: t.hieu_31</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-7.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Hữu Hiệu</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>IT</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-8.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Ngọc Ánh</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>TFBOYS {"\u{1F340}"} </Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/avatar-9.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>
-                      Phòng khám Mon {"\u{2705}"}
-                    </Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>Tận tâm nè</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
-            <View style={styles.row}>
-              <View style={styles.row3}>
-                <TouchableOpacity>
-                  {/* Ảnh đại diện người dùng */}
-                  <Image
-                    style={styles.avatar60}
-                    source={require("../../assets/images/myavatar.png")}
-                  ></Image>
-                </TouchableOpacity>
-                <View>
-                  <TouchableOpacity>
-                    {/* Tên người dùng */}
-                    <Text style={styles.account_name}>Đỗ Quỳnh Chi</Text>
-                  </TouchableOpacity>
-                  {/* Tiểu sử người dùng */}
-                  <Text style={styles.account_bio}>LOVE</Text>
-                </View>
-              </View>
-
-              {/* Tùy chọn Follow */}
-              <TouchableOpacity style={styles.follow_button}>
-                <Text style={styles.follow_text}>Theo dõi</Text>
-              </TouchableOpacity>
-            </View>
-            {/* NỘI DUNG MỘT NGƯỜI DÙNG */}
+            ))}
+            {/* NỘI DUNG NGƯỜI DÙNG */}
           </View>
         </View>
       </ScrollView>
@@ -452,9 +330,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     margin: 8,
+    borderRadius: 50,
   },
   account_name: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#8F1928",
     fontFamily: "lexend-semibold",
   },
@@ -467,7 +346,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#8F1928",
     borderRadius: 12,
     width: 114,
-    height: 25,
+    height: 28,
     justifyContent: "center", // căn giữa theo chiều dọc
     alignItems: "center", // căn giữa theo chiều ngang
   },
@@ -485,7 +364,7 @@ const styles = StyleSheet.create({
     borderColor: "#8F1928",
     borderRadius: 12,
     width: 114,
-    height: 25,
+    height: 28,
     justifyContent: "center", // căn giữa theo chiều dọc
     alignItems: "center", // căn giữa theo chiều ngang
   },

@@ -166,7 +166,13 @@ export default function C_StatusLikedListScreen({ navigation }) {
             {likedUsers.map((user) => (
               <View style={styles.row} key={user.userId}>
                 <View style={styles.row3}>
-                  <TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("C_Profile", {
+                        userId: user.userId,
+                      })
+                    }
+                  >
                     {/* Ảnh đại diện người dùng */}
                     <Image
                       style={styles.avatar60}
@@ -174,7 +180,13 @@ export default function C_StatusLikedListScreen({ navigation }) {
                     ></Image>
                   </TouchableOpacity>
                   <View>
-                    <TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate("C_Profile", {
+                          userId: user.userId,
+                        })
+                      }
+                    >
                       {/* Tên người dùng */}
                       <Text style={styles.account_name}>{user.userName}</Text>
                     </TouchableOpacity>
@@ -187,7 +199,7 @@ export default function C_StatusLikedListScreen({ navigation }) {
                 {user.userId !== myUserId &&
                   (user.isFollowing ? (
                     <TouchableOpacity style={styles.following_button}>
-                      <Text style={styles.follow_text}>Đang theo dõi</Text>
+                      <Text style={styles.following_text}>Đang theo dõi</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity style={styles.follow_button}>
@@ -274,7 +286,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   account_name: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#8F1928",
     fontFamily: "lexend-semibold",
   },
@@ -287,7 +299,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#8F1928",
     borderRadius: 12,
     width: 114,
-    height: 25,
+    height: 28,
     justifyContent: "center", // căn giữa theo chiều dọc
     alignItems: "center", // căn giữa theo chiều ngang
   },
@@ -305,9 +317,11 @@ const styles = StyleSheet.create({
     borderColor: "#8F1928",
     borderRadius: 12,
     width: 114,
-    height: 25,
+    height: 28,
     justifyContent: "center", // căn giữa theo chiều dọc
     alignItems: "center", // căn giữa theo chiều ngang
+    // marginRight: 24,
+    // marginLeft: 16,
   },
   following_text: {
     fontSize: 14,

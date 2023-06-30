@@ -20,11 +20,32 @@ import React, {
   useLayoutEffect,
   useRef,
 } from "react";
+import { Audio, Video, ResizeMode } from "expo-av";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import * as VideoPicker from "expo-image-picker";
+
+import { requestMediaLibraryPermissionsAsync } from "expo-image-picker";
 import * as Font from "expo-font";
 import moment from "moment";
-import { database } from "../../firebase";
-import { onValue, ref, get, set, push } from "firebase/database";
+import { storage, database } from "../../firebase";
+import {
+  getDatabase,
+  set,
+  push,
+  ref,
+  get,
+  onValue,
+  remove,
+} from "firebase/database";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { Snackbar } from "react-native-paper";
+import {
+  getDownloadURL,
+  getStorage,
+  uploadBytes,
+  ref as storageRef,
+} from "firebase/storage";
 
 export default function C_StatusPostingScreen({ navigation }) {
   const myUserId = "10"; // VÍ DỤ
@@ -71,26 +92,110 @@ export default function C_StatusPostingScreen({ navigation }) {
     loadFont();
   }, []);
 
+  //ĐĂNG BÀI
+  const [modalVisible, setModalVisible] = useState(false);
   const [value, setValue] = useState("");
   const [media, setMedia] = useState("");
-
-  const handlePost = () => {
+  const handlePost = async () => {
     if (value === "") {
       return;
     }
-
     const maxPostId = Math.max(...postIdList);
     const newPostId = maxPostId + 1;
     const newPostRef = ref(database, `post/${newPostId}`);
     const newPostData = {
       user_id: myUserId,
       content: value,
-      media: media,
+      media: null,
+      mediaType: null,
       date: moment().format("DD-MM-YYYY HH:mm:ss"),
     };
-    set(newPostRef, newPostData);
-
+    if (isSelected) {
+      if (image) {
+        const response = await fetch(image);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Status_Images/${newPostId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          newPostData.media = url;
+          newPostData.mediaType = "image";
+        } catch (error) {
+          console.log("Error uploading image:", error);
+        }
+      } else {
+        const response = await fetch(video);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Status_Videos/${newPostId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          newPostData.media = url;
+          newPostData.mediaType = "video";
+        } catch (error) {
+          console.log("Error uploading video:", error);
+        }
+      }
+    }
+    setModalVisible(true);
+    await set(newPostRef, newPostData);
+    // Hiển thị snackbar thành công
+    setModalVisible(false);
     navigation.navigate("C_Home");
+  };
+
+  // CHỌN/XÓA ẢNH
+  const [image, setImage] = useState(null);
+  const [isSelected, setIsSelected] = useState(false);
+  const pickImage = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelected(true);
+      setImage(result.assets[0].uri);
+    }
+  };
+  const removeImage = () => {
+    setIsSelected(false);
+    setImage(null);
+  };
+
+  // CHỌN/XÓA VIDEO
+  const [video, setVideo] = useState(null);
+  const pickVideo = async () => {
+    const { status } = await VideoPicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await VideoPicker.launchImageLibraryAsync({
+      mediaTypes: VideoPicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelected(true);
+      setVideo(result.assets[0].uri);
+    }
+  };
+  const removeVideo = () => {
+    setIsSelected(false);
+    setVideo(null);
   };
 
   if (!fontLoaded) {
@@ -139,16 +244,110 @@ export default function C_StatusPostingScreen({ navigation }) {
           onChangeText={setValue}
           multiline={true}
         ></TextInput>
-        <Image
-          source={require("../../assets/images/background-posting-status.png")}
-          style={styles.background}
-        ></Image>
+        {isSelected ? (
+          <View
+            style={{
+              marginLeft: "auto",
+              marginRight: "auto",
+              marginTop: 28,
+            }}
+          >
+            {image && (
+              <Image
+                source={{ uri: image }}
+                style={{
+                  width: 300,
+                  height: 300,
+                  borderRadius: 12,
+                }}
+              />
+            )}
+            {video && (
+              <Video
+                source={{ uri: video }}
+                // style={styles.previewVideo}
+                style={{
+                  width: 320,
+                  height: 180,
+                  borderRadius: 12,
+                }}
+                useNativeControls
+                resizeMode="contain"
+              />
+            )}
+            <TouchableOpacity
+              onPress={removeImage}
+              style={{ position: "absolute", top: 8, right: 8 }}
+            >
+              <AntDesign name="close" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Image
+            source={require("../../assets/images/background-posting-status.png")}
+            style={styles.background}
+          ></Image>
+        )}
+
+        <View style={styles.row2}>
+          <TouchableOpacity onPress={pickImage}>
+            <ImageBackground
+              source={require("../../assets/images/post_image.jpg")}
+              style={styles.post_media}
+              borderRadius={10}
+            >
+              <Text style={styles.label}>Chọn Ảnh</Text>
+            </ImageBackground>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={pickVideo}>
+            <ImageBackground
+              source={require("../../assets/images/post-image.gif")}
+              style={styles.post_media}
+              borderRadius={10}
+            >
+              <Text style={styles.label}>Chọn Video</Text>
+            </ImageBackground>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+      <Modal visible={modalVisible} animationType="fade" transparent={true}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Snackbar
+            visible={true}
+            duration={2000}
+            style={{ backgroundColor: "white" }}
+            theme={{ colors: { text: "white" } }}
+          >
+            <View style={styles.row10}>
+              <Ionicons name="sync-outline" size={28} color="green" />
+              <Text style={styles.snackbarText}>Đang tải lên...</Text>
+            </View>
+          </Snackbar>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  row10: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  snackbarText: {
+    fontSize: 16,
+    fontFamily: "lexend-light",
+    color: "green",
+    marginLeft: 20,
+  },
   container: {
     width: "100%",
     height: "90%",
@@ -233,15 +432,9 @@ const styles = StyleSheet.create({
   background: {
     width: 300,
     height: 300,
-    // position: "fixed",
-    // top: 0,
-    // left: 0,
-    // right: 0,
-    // bottom: 0,
-    // height: "100%",
     marginLeft: "auto",
     marginRight: "auto",
-    marginTop: "40%",
+    marginTop: "7%",
   },
   account_name: {
     fontSize: 16,
@@ -265,7 +458,7 @@ const styles = StyleSheet.create({
   arrow_down: {
     width: 12,
     height: 12,
-    // marginRight: 8,
+    // marginRight: 4,
     marginLeft: 8,
   },
   status_input: {
@@ -273,5 +466,20 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
     fontFamily: "lexend-regular",
+  },
+  post_media: {
+    width: 150,
+    height: 100,
+    marginTop: 80,
+    marginRight: 30,
+    marginLeft: 30,
+  },
+  label: {
+    color: "white",
+    fontFamily: "lexend-regular",
+    marginTop: 76,
+    fontSize: 18,
+    marginLeft: "auto",
+    marginRight: "auto",
   },
 });

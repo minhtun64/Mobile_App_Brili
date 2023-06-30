@@ -16,7 +16,7 @@ import {
   useScrollToTop,
   useFocusEffect,
 } from "@react-navigation/native";
-import { Audio } from "expo-av";
+import { Audio, Video, ResizeMode } from "expo-av";
 import * as Font from "expo-font";
 import moment from "moment";
 import { database } from "../../firebase";
@@ -27,7 +27,7 @@ import TextAnimation from "../../components/TextAnimation";
 
 export default function C_HomeScreen({ navigation }) {
   const myUserId = "10"; // VÍ DỤ
-
+  const [myAvatar, setMyAvatar] = useState(null);
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
   useEffect(() => {
@@ -56,6 +56,12 @@ export default function C_HomeScreen({ navigation }) {
 
   const fetchRecentPosts = async () => {
     try {
+      const userRef = ref(database, `user/${myUserId}`);
+      onValue(userRef, async (snapshot) => {
+        const userData = snapshot.val();
+        setMyAvatar(userData.avatar);
+      });
+
       // Lấy danh sách bài đăng từ Firebase
       const postsRef = ref(database, "post");
       onValue(postsRef, async (snapshot) => {
@@ -126,7 +132,7 @@ export default function C_HomeScreen({ navigation }) {
         const likesData = likesSnapshot.val();
 
         for (const commentId in likesData) {
-          if (commentId === "0") {
+          if (commentId === "post") {
             await set(
               ref(database, `like/${postId}/${myUserId}/${commentId}`),
               null
@@ -143,7 +149,7 @@ export default function C_HomeScreen({ navigation }) {
         const likeData = {
           date: moment().format("DD-MM-YYYY HH:mm:ss"),
         };
-        await set(ref(database, `like/${postId}/${myUserId}/0`), likeData);
+        await set(ref(database, `like/${postId}/${myUserId}/post`), likeData);
         // Thêm bài viết vào danh sách likedPosts
         const updatedLikedPosts = [...likedPosts, { postId }];
         setLikedPosts(updatedLikedPosts);
@@ -171,6 +177,11 @@ export default function C_HomeScreen({ navigation }) {
       console.error("Error handling like:", error);
     }
   };
+
+  //VIDEO
+  const video = React.useRef(null);
+  const [status, setStatus] = React.useState(false);
+  const [isMuted, setIsMuted] = React.useState(true);
 
   if (!fontLoaded) {
     return null;
@@ -201,11 +212,14 @@ export default function C_HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
           <View style={styles.row}>
-            <TouchableOpacity>
-              <Image
-                style={styles.avatar60}
-                source={require("../../assets/images/myavatar.png")}
-              ></Image>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("C_Profile", {
+                  userId: myUserId,
+                })
+              }
+            >
+              <Image style={styles.avatar60} source={{ uri: myAvatar }}></Image>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate("C_StatusPosting")}
@@ -241,20 +255,24 @@ export default function C_HomeScreen({ navigation }) {
               <TouchableOpacity
                 key={post.postId}
                 style={styles.status}
-                onPress={() =>
+                onPress={() => {
                   navigation.navigate("C_Status", {
                     postId: post.postId,
+                    userId: post.userId,
                     userName: post.userName,
                     userAvatar: post.userAvatar,
                     content: post.content,
                     media: post.media,
+                    mediaType: post.mediaType,
                     formattedDate: post.formattedDate,
                     likeCount: post.likeCount,
                     likedUsers: post.likedUsers,
                     commentCount: post.commentCount,
                     isLiked: isLiked,
-                  })
-                }
+                  });
+                  // setIsMuted(true);
+                  video.current.pauseAsync();
+                }}
               >
                 <View style={styles.row}>
                   <View style={styles.row2}>
@@ -297,12 +315,42 @@ export default function C_HomeScreen({ navigation }) {
 
                 {/* Ảnh/Video Status */}
                 {post.media && (
-                  <TouchableOpacity>
-                    <Image
-                      style={styles.status_image}
-                      source={{ uri: post.media }}
-                    />
-                  </TouchableOpacity>
+                  <View>
+                    {post.mediaType == "image" ? (
+                      <Image
+                        style={styles.status_image}
+                        source={{ uri: post.media }}
+                      />
+                    ) : (
+                      <TouchableOpacity>
+                        <Video
+                          style={styles.status_video}
+                          source={{ uri: post.media }}
+                          ref={video}
+                          resizeMode="cover"
+                          // shouldPlay={true}
+                          shouldPlay={false}
+                          isLooping={true}
+                          useNativeControls
+                          isMuted={true}
+                          resizeMode={ResizeMode.CONTAIN}
+                          onPlaybackStatusUpdate={(status) =>
+                            setStatus(() => status)
+                          }
+                        />
+                        {/* <View>
+                          <Button
+                            title={status.isPlaying ? "Pause" : "Play"}
+                            onPress={() =>
+                              status.isPlaying
+                                ? video.current.pauseAsync()
+                                : video.current.playAsync()
+                            }
+                          />
+                        </View> */}
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
 
                 {/* Like / Comment / Share */}
@@ -397,6 +445,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     marginLeft: 20,
+    borderRadius: 50,
   },
   frame_post: {
     width: 324,
@@ -499,8 +548,19 @@ const styles = StyleSheet.create({
   },
   status_image: {
     width: 320,
-    height: 180,
-    resizeMode: "contain",
+    aspectRatio: 1 / 1,
+    // height: 180,
+    // resizeMode: "contain",
+    alignSelf: "center",
+    margin: 8,
+    borderRadius: 12,
+    //transform: [{ scale: this.state.scaleValue }],
+  },
+
+  status_video: {
+    width: 300,
+    height: 533,
+    // resizeMode: "contain",
     alignSelf: "center",
     margin: 8,
     borderRadius: 12,
