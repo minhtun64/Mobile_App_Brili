@@ -43,7 +43,9 @@ export default function SignInScreen({ navigation }) {
     setGender(value);
   };
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const auth = FIREBASE_AUTH;
 
@@ -63,16 +65,22 @@ export default function SignInScreen({ navigation }) {
   const signUp = async () => {
     setLoading(true);
     try {
+      if (!email || !password || !confirmPassword || !name) {
+        throw new Error('Xin vui lòng điền đầy đủ thông tin');
+      }
+      if (password !== confirmPassword) {
+        throw new Error('Xác thực mật khẩu thất bại');
+      }
       const response = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
       console.log(response);
-      alert("Đăng ký thành công!");
+      alert('Đăng ký thành công!');
     } catch (error) {
       console.log(error);
-      alert("Lỗi đăng ký: " + error.message);
+      alert('Lỗi đăng ký: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -163,8 +171,8 @@ export default function SignInScreen({ navigation }) {
             <TextInput
               style={styles.login_area_text_input}
               placeholder="Nhập họ tên"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
+              value={name}
+              onChangeText={(text) => setName(text)}
             ></TextInput>
           </View>
         </View>
@@ -179,7 +187,7 @@ export default function SignInScreen({ navigation }) {
               <TextInput
                 placeholder="Nhập mật khẩu"
                 value={password}
-                onChangeText={(text) => setPassword(text)}
+                onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 style={styles.login_area_text_input}
                 // onFocus={handleFocus}
@@ -208,6 +216,8 @@ export default function SignInScreen({ navigation }) {
             ></Image>
             <View style={styles.login_area_text_label}>
               <TextInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
                 placeholder="Nhập lại mật khẩu lần nữa"
                 secureTextEntry={!showPassword}
                 style={styles.login_area_text_input}
