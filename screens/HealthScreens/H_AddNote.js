@@ -16,7 +16,7 @@ import {
    import {LocaleConfig} from 'react-native-calendars';
    import { Calendar } from 'react-native-calendars';
    import React, { Component , useCallback, useEffect, useState,useRef, } from "react";
-  //  import DateTimePickerModal from 'react-native-modal-datetime-picker';
+   import DateTimePickerModal from 'react-native-modal-datetime-picker';
    const NOTEBOOK = "NOTEBOOK";
    const HANDBOOK = "HANDBOOK";
    export default function H_NoteScreen({ navigation }) {
