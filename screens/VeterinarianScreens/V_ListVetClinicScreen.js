@@ -58,7 +58,7 @@ export default function V_ListVetClinicScreen({ navigation, route }) {
     } else if (matchedDistrict.length != 0) {
       setData(matchedDistrict);
     } else if (matchedProvince.length != 0) {
-      console.log(matchedProvince);
+      setData(matchedProvince);
     } else {
       setData(data);
     }

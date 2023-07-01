@@ -14,7 +14,7 @@ import { onValue, ref, get, set, push, query, orderByChild, equalTo } from "fire
 import { formatTime } from "../../components/TimeMessagesUtils";
 
 export default function M_ChatListScreen({ navigation }) {
-  const myUserId = 10; // VÍ DỤ
+  const myUserId = 3; // VÍ DỤ
 
   //Load danh sách tin nhắn
   const [messages, setMessages] = useState([]);

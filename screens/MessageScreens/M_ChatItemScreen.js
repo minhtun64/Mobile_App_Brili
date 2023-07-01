@@ -17,7 +17,7 @@ import Receiver from "../../components/receiver";
 
 export default function M_ChatListScreen({ navigation, route }) {
   const { propId, propName, propAvatar } = route.params;
-  const myUserId = 10; // VÍ DỤ
+  const myUserId = 3; // VÍ DỤ
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');

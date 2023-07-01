@@ -11,11 +11,11 @@ import {
 import React, { useState, useEffect } from "react";
 import CalendarStrip from 'react-native-calendar-strip';
 import { database } from "../../firebase";
-import { ref, get } from "firebase/database";
+import { ref, get, push, update } from "firebase/database";
 
 export default function V_BookingVetScreen({ navigation, route }) {
   const { clinicId, clinicName, clinicAddress, clinicAvatar } = route.params;
-  const myUserID = 10;
+  const myUserID = 3;
 
   const [timeId, setTimeId] = useState();
   const [petId, setPetId] = useState();
@@ -35,7 +35,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
   }, [selectedDate]);
 
   const fetchDataFromFirebase = async () => {
-    const appoinmtRef = ref(database, `appointment/${clinicId}`);
+    const appoinmtRef = ref(database, `appointment_schedule/${clinicId}`);
     const appoinmtSnapshot = await get(appoinmtRef);
     const data = appoinmtSnapshot.val();
 
@@ -46,7 +46,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
 
     data.forEach((item) => {
       const parsedDateItem = new Date(item.date);
-      if (item !== undefined && parsedDateCurrent.getTime() === parsedDateItem.getTime()) {          
+      if (item !== undefined && parsedDateCurrent.getTime() === parsedDateItem.getTime()) {
         timeData.push({
           id: item.id,
           startTime: item.start_time,
@@ -71,11 +71,59 @@ export default function V_BookingVetScreen({ navigation, route }) {
     });
     setPetList(petArr);
 
-    setLoading(false);    
+    setLoading(false);
+  }
+
+  const appointmentRef = ref(database, `/appointment/${clinicId}/${timeId}`);
+
+  const submitBooking = () => {
+    const currentDate = new Date();
+    const day = currentDate.getDate().toString().padStart(2, '0');
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = currentDate.getFullYear().toString();
+    const hours = currentDate.getHours().toString().padStart(2, '0');
+    const minutes = currentDate.getMinutes().toString().padStart(2, '0');
+    const seconds = currentDate.getSeconds().toString().padStart(2, '0');
+
+    const formattedTimestamp = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+
+    const newRecord = {
+      id: Math.floor(Math.random() * 1000000) + 1,
+      appointment_schedule_id: timeId,
+      clinic_id: clinicId,
+      pet_id: petId,
+      description: '',
+      status: 1,
+      booking_date: formattedTimestamp,
+    };
+
+    push(appointmentRef, newRecord)
+      .then(async () => {
+        console.log('New record added successfully!');
+
+        const apmtScheduleRef = ref(database, `appointment_schedule/${clinicId}/${timeId}`);
+        const apmtScheduleSnapshot = await get(apmtScheduleRef);
+        const apmtScheduleData = apmtScheduleSnapshot.val();
+
+        var bookedSlot = apmtScheduleData.booked;
+        var slotAvai = apmtScheduleData.slot;
+
+        const newScheduleUpdate = {
+          booked: bookedSlot + 1,
+          slot: slotAvai - 1,
+        }
+
+        if (update(apmtScheduleRef, newScheduleUpdate)) {
+          alert("Đặt lịch thành công")  // ------------------------------ update
+        }
+      })
+      .catch((error) => {
+        console.log('Error adding new record:', error);
+      });
   }
 
   if (loading) {
-    return <Text style={{marginTop: '12%', marginLeft: '4%'}}>Loading...</Text>;
+    return <Text style={{ marginTop: '12%', marginLeft: '4%' }}>Loading...</Text>;
   }
 
   return (
@@ -167,8 +215,10 @@ export default function V_BookingVetScreen({ navigation, route }) {
         <TouchableOpacity
           style={styles.btn}
           onPress={() => {
-            if (petId != null && timeId != null)
-              navigation.navigate('V_BookingSuccess')
+            if (petId != null && timeId != null) {
+              submitBooking();
+              navigation.navigate('V_BookingSuccess');
+            }
           }}
         >
           <Text style={styles.textBtn}>Xác nhận đặt lịch</Text>
@@ -195,7 +245,7 @@ const PetCard = (prop) => {
       style={[styles.petCard, styles.row, { backgroundColor: prop.backgroundColor }]}
       onPress={prop.onPress}
     >
-      <Image style={styles.petImg} source={ {uri: prop.avatar} }></Image>
+      <Image style={styles.petImg} source={{ uri: prop.avatar }}></Image>
       <Text style={[styles.petName, { color: prop.textColor }]}>{prop.name}</Text>
     </TouchableOpacity>
   )
