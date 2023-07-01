@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import {
   Modal,
   RefreshControl,
 } from "react-native";
+
 import {
   useNavigation,
   useScrollToTop,
   useFocusEffect,
+  useRoute,
 } from "@react-navigation/native";
 import { Audio, Video, ResizeMode } from "expo-av";
 import * as Font from "expo-font";
@@ -25,9 +27,10 @@ import getStatusInfo from "../../firebase_functions/getStatusInfo";
 import ShakeBackgroundImage from "../../components/ShakeBackgroundImage";
 import TextAnimation from "../../components/TextAnimation";
 import { saveNotification } from "../../components/utils";
+import { UserContext } from "../../UserIdContext";
 
 export default function C_HomeScreen({ navigation }) {
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
   const [myAvatar, setMyAvatar] = useState(null);
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);

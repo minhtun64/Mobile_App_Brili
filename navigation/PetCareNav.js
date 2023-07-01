@@ -44,11 +44,13 @@ import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
+import T_SignInScreen from "../screens/T_SignInScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="T_SignIn" component={T_SignInScreen} />
       <Stack.Screen name="HomeTabs" component={MyTabs} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="SignIn" component={SignInScreen} />

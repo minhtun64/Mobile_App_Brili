@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getDatabase, set, push } from "firebase/database";
 import {
   getDownloadURL,
@@ -24,6 +25,6 @@ const app = initializeApp(firebaseConfig);
 // Khởi tạo các dịch vụ Firebase cần sử dụng
 const storage = getStorage(app);
 const database = getDatabase(app);
-// const auth = auth(app);
+const auth = getAuth(app);
 
-export { storage, database };
+export { storage, database, auth };
