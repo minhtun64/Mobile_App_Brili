@@ -22,6 +22,10 @@ import React, {
 import { Ionicons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { releaseSecureAccess } from "react-native-document-picker";
+import { FIREBASE_AUTH } from "../firebase";
+//import { isWhiteSpaceLike } from "typescript";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import DatePicker from "react-native-datepicker";
 import { RadioButton } from "react-native-paper";
 import { CheckBox } from "react-native-elements";
@@ -37,6 +41,41 @@ export default function SignInScreen({ navigation }) {
   const [gender, setGender] = useState("male");
   const handleGenderChange = (value) => {
     setGender(value);
+  };
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const auth = FIREBASE_AUTH;
+
+  const signIn = async () => {
+    setLoading(true);
+    try {
+      const response = await signInWithEmailAndPassword(auth, email, password);
+      console.log(response);
+    } catch (error) {
+      console.log(error);
+      alert("Đăng nhập thất bại: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUp = async () => {
+    setLoading(true);
+    try {
+      const response = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      console.log(response);
+      alert("Đăng ký thành công!");
+    } catch (error) {
+      console.log(error);
+      alert("Lỗi đăng ký: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -108,6 +147,8 @@ export default function SignInScreen({ navigation }) {
             ></Image>
             <TextInput
               style={styles.login_area_text_input}
+              value={email}
+              onChangeText={(text) => setEmail(text)}
               placeholder="Nhập email"
             ></TextInput>
           </View>
@@ -137,6 +178,8 @@ export default function SignInScreen({ navigation }) {
             <View style={styles.login_area_text_label}>
               <TextInput
                 placeholder="Nhập mật khẩu"
+                value={password}
+                onChangeText={(text) => setPassword(text)}
                 secureTextEntry={!showPassword}
                 style={styles.login_area_text_input}
                 // onFocus={handleFocus}
@@ -268,7 +311,11 @@ export default function SignInScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.btn}
-            onPress={() => navigation.navigate("HomeTabs")}
+            // onPress={() => navigation.navigate("HomeTabs")}
+            onPress={() => {
+              signUp();
+              // create();
+            }}
           >
             <Text style={styles.opt_login}>ĐĂNG KÝ</Text>
           </TouchableOpacity>

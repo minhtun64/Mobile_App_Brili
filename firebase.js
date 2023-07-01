@@ -6,6 +6,7 @@ import {
   ref,
   uploadString,
 } from "firebase/storage";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-ajAQ1iDfhswiEZFh5MFoss44SjibteM",
@@ -20,6 +21,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+export const FIREBASE_AUTH = getAuth(app);
 
 // Khởi tạo các dịch vụ Firebase cần sử dụng
 const storage = getStorage(app);
