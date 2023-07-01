@@ -39,17 +39,20 @@ import M_ChatItemScreen from "../screens/MessageScreens/M_ChatItemScreen";
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
+import T_SignInScreen from "../screens/T_SignInScreen";
 
 const Stack = createStackNavigator();
 function StackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="T_SignIn" component={T_SignInScreen} />
+      <Stack.Screen name="HomeTabs" component={MyTabs} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="FirstOwnerInfo" component={FirstOwnerInfoScreen} />
       <Stack.Screen name="FirstPetInfo" component={FirstPetInfoScreen} />
-      <Stack.Screen name="HomeTabs" component={MyTabs} />
+      {/* <Stack.Screen name="HomeTabs" component={MyTabs} /> */}
     </Stack.Navigator>
   );
 }

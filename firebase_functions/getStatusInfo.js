@@ -25,7 +25,7 @@ const getStatusInfo = async (postId) => {
       for (const userId in likesData) {
         const userLikes = likesData[userId];
         for (const commentId in userLikes) {
-          if (commentId === "0") {
+          if (commentId === "post") {
             likedUsers.push({
               userId: userId,
             });
@@ -55,6 +55,7 @@ const getStatusInfo = async (postId) => {
         userAvatar: userData.avatar,
         content: statusData.content,
         media: statusData.media,
+        mediaType: statusData.mediaType,
         date: statusData.date,
         formattedDate: formattedDate,
         likeCount: likedUsers.length,

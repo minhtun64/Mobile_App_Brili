@@ -18,7 +18,6 @@ import React, {
 import { Ionicons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { releaseSecureAccess } from "react-native-document-picker";
-// import { isWhiteSpaceLike } from "typescript";
 
 const { height } = Dimensions.get("window");
 const { width } = Dimensions.get("window");

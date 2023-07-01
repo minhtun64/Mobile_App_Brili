@@ -9,9 +9,29 @@ import {
 } from "react-native";
 
 import MainNavigator from "./navigation/PetCareNav";
+import { LogBox } from "react-native";
+
+import React, {
+  Component,
+  useEffect,
+  useState,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
+
+import { NavigationContainer } from "@react-navigation/native";
+import { UserProvider } from "./UserIdContext";
 
 export default function App() {
-  return <MainNavigator></MainNavigator>;
+  useEffect(() => {
+    LogBox.ignoreAllLogs(true);
+  }, []);
+  return (
+    <UserProvider>
+      <MainNavigator></MainNavigator>
+    </UserProvider>
+  );
 }
 
 const styles = StyleSheet.create({
