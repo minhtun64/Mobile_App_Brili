@@ -14,7 +14,7 @@ import {
 } from "react";
 import { database } from "../../firebase";
 import { formatDate } from "../../components/utils";
-import { onValue, ref, get, set, push, off } from "firebase/database";
+import { onValue, ref, get, set, push, off, update } from "firebase/database";
 export default function N_ListScreen({ navigation }) {
   const [userID, setUserID] = useState(1);
   const [sortedNotis, setSortedNotis] = useState()
@@ -27,7 +27,7 @@ const getNotificationsByReceiver = async (receiver) => {
     const notisData = snapshot.val();
     if (notisData) {
       const notis = Object.entries(notisData).map(([notiID, noti]) => {
-        if (noti.receiver === receiver) {
+        if (noti.receiver == receiver) {
           return { notiID, ...noti };
         }
       }).filter(noti => noti); // Lọc bỏ các giá trị undefined
@@ -64,6 +64,16 @@ const getNotificationsByReceiver = async (receiver) => {
   });
 };
 
+const updateNotificationSeen = (notiId) =>{
+  const notiRef = ref(database, `notification/${notiId}/seen`);
+  const newdata = 1
+  if(set(notiRef, newdata)){
+    return 1
+  }
+
+}
+
+
 useEffect(() => {
   if (userNames) {
     const updatedSortedNotis = sortedNotis.map((noti) => {
@@ -78,7 +88,6 @@ useEffect(() => {
       return noti;
     });
     setFinalNotis(updatedSortedNotis);
-    console.log(finalNotis);
   }
 }, [userNames, sortedNotis]);
 
@@ -98,9 +107,9 @@ useEffect(() => {
       <View style={styles.containerList}>
         <ScrollView contentContainerStyle={styles.containerListTask}>
           
-        {finalNotis &&
+    {finalNotis &&
   finalNotis.map((noti, index) => {
-    const { type, name, datetime, seen, avatar } = noti;
+    const { type, name, datetime, seen, avatar, notiID } = noti;
 
     // Kiểm tra giá trị của trường `type` và `seen` để render giao diện tương ứng
     switch (type) {
@@ -111,7 +120,7 @@ useEffect(() => {
             onPress={() => navigation.navigate('C_Home', { postid: noti.postid })}
             key={index}
           >
-            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+            <View style={[styles.containerItem, seen == 0 ? styles.seenColor : null]}>
               <View style={styles.containerAvt}>
                 <Image style={styles.avatar} source={{uri: avatar}} />
                 <Image style={styles.checkbox} source={require("../../assets/icons/messages-3.png")} /> 
@@ -139,7 +148,7 @@ useEffect(() => {
             style={styles.btn}
             key={index}
           >
-            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+            <View style={[styles.containerItem, seen == 0 ? styles.seenColor : null]}>
               <View style={styles.containerAvt}>
                 <Image style={styles.avatar} source={{uri: avatar}} />
                 <Image style={styles.checkbox} source={require("../../assets/icons/profile-2user.png")} />
@@ -165,10 +174,10 @@ useEffect(() => {
         return (
           <TouchableOpacity
             style={styles.btn}
-            onPress={() => navigation.navigate('C_Home', { postid: noti.postid })}
+            onPress={() => updateNotificationSeen(notiID) && navigation.navigate('C_Home', { postid: noti.postid })  }
             key={index}
           >
-            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+            <View style={[styles.containerItem, seen == 0 ? styles.seenColor : null]}>
               <View style={styles.containerAvt}>
                 <Image style={styles.avatar} source={{uri: avatar}} />
                 <Image style={styles.checkbox} source={require("../../assets/icons/Like_Icon.png")} />
@@ -193,10 +202,10 @@ useEffect(() => {
         return (
           <TouchableOpacity
             style={styles.btn}
-            onPress={() => navigation.navigate('C_Home', { postid: noti.postid })}
+            onPress={() =>updateNotificationSeen(notiID) && navigation.navigate('C_Home', { postid: noti.postid })}
             key={index}
           >
-            <View style={[styles.containerItem, seen === 0 ? styles.seenColor : null]}>
+            <View style={[styles.containerItem, seen == 0 ? styles.seenColor : null]}>
               <View style={styles.containerAvt}>
                 <Image style={styles.avatar} source={{uri: avatar}} />
                 <Image style={styles.checkbox} source={require("../../assets/icons/messages-3.png")} /> 
@@ -220,10 +229,7 @@ useEffect(() => {
       default:
         return null;
     }
-  })}
-
-
-          
+  })}          
         </ScrollView>
       </View>
     </View>
@@ -320,5 +326,8 @@ textTime:{
 },
 seenColor:{
   backgroundColor:"rgba(244, 175, 174, 0.60)",
+},
+containerListTask:{
+  paddingBottom:200
 }
 });

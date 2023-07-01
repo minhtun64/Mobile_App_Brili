@@ -36,7 +36,7 @@ import { Icon } from "react-native-elements";
 
 import { useSwipe } from "../../hooks/useSwipe";
 import { AntDesign } from "@expo/vector-icons";
-
+import { saveNotification } from "../../components/utils";
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
 import { Permissions } from "expo-permissions";
@@ -254,6 +254,7 @@ export default function C_StatusScreen({ navigation }) {
           ...prevStatusInfo,
           likeCount: prevStatusInfo.likeCount + 1,
         }));
+        await saveNotification(myUserId,'like',postId)
       }
     } catch (error) {
       console.error("Error handling like:", error);
@@ -294,6 +295,7 @@ export default function C_StatusScreen({ navigation }) {
       }
     }
     await set(ref(database, `comment/${newCommentId}`), newCommentData);
+    await saveNotification(myUserId,'cmt',postId)
     setValue("");
     setIsSelected(false);
     setShowEmojiSelector(false);

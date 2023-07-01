@@ -34,7 +34,7 @@ import {
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
-
+import { saveNotification, saveNotificationFollow } from "../../components/utils";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { Snackbar } from "react-native-paper";
 
@@ -398,7 +398,10 @@ export default function C_ProfileScreen({ navigation }) {
       const followData = {
         date: moment().format("DD-MM-YYYY HH:mm:ss"),
       };
-      set(ref(database, `follow/${myUserId}/${userId}`), followData);
+      if(set(ref(database, `follow/${myUserId}/${userId}`), followData)){
+        
+        saveNotificationFollow(myUserId,'follow', userId)
+      }
       setIsFollowing(true);
     }
   };

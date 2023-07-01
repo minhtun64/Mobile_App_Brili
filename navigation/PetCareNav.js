@@ -1,15 +1,22 @@
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Dimensions, Image, StyleSheet, View } from "react-native";
+import { Dimensions, Image, StyleSheet, View, Text,  } from "react-native";
+// import { getCountSeenNoti } from "../components/utils";
 import { useNavigation } from "@react-navigation/native";
-
+import * as Font from "expo-font";
 import WelcomeScreen from "../screens/WelcomeScreen";
 import SignInScreen from "../screens/SignInScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import FirstOwnerInfoScreen from "../screens/FirstOwnerInfoScreen";
 import FirstPetInfoScreen from "../screens/FirstPetInfoScreen";
-
+import {
+  useEffect,
+  useState,
+  React
+} from "react";
+import { onValue, ref, push, set, get } from 'firebase/database';
+import { database } from "../firebase";
 import C_HomeScreen from "../screens/CommunityScreens/C_HomeScreen";
 import C_StatusScreen from "../screens/CommunityScreens/C_StatusScreen";
 import C_StatusLikedListScreen from "../screens/CommunityScreens/C_StatusLikedListScreen";
@@ -38,7 +45,6 @@ import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
 
-import PushNotification from "../components/PushNotification";
 const Stack = createStackNavigator();
 function StackNavigator() {
   return (
@@ -173,8 +179,32 @@ function SettingStackNavigator() {
   );
 }
 
+
 const Tab = createBottomTabNavigator();
 function MyTabs() {
+  const userID = 1
+  const [notiCount, setNotiCount] = useState(0);
+  const getCountSeenNoti = (userId) => {
+    const notiRef = ref(database, 'notification');
+    let seenCount = 0; // Sử dụng biến khác để lưu giá trị seenCount
+    onValue(notiRef, (snapshot) => {
+      const notisData = snapshot.val();
+      if (notisData) {
+        const notis = Object.entries(notisData).map(([notiID, noti]) => {
+          if (noti.receiver == userId) {
+            return { notiID, ...noti };
+          }
+        }).filter(noti => noti); // Lọc bỏ các giá trị undefined
+        seenCount = notis.filter(noti => noti.seen == 0).length;
+      }
+      setNotiCount(seenCount)
+      console.log(notiCount)
+    });// Trả về giá trị của seenCount
+  };
+  useEffect(() => {
+    getCountSeenNoti(userID);
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -311,20 +341,36 @@ function MyTabs() {
           tabBarLabel: "Thông báo",
           tabBarIcon: ({ focused }) => (
             <View style={{ alignItems: "center", justifyContent: "center" }}>
+              
               {focused && (
-                <Image
-                  style={styles.tabIcon}
-                  resizeMode="contain"
-                  source={require("../assets/icons/notification-active.png")}
-                ></Image>
+                
+                  <Image
+                    style={styles.tabIcon}
+                    resizeMode="contain"
+                    source={require("../assets/icons/notification-active.png")}
+                  ></Image>
+               
               )}
-              {!focused && (
+             
+              {!focused && notiCount > 0 && (
+                <View>
+                <View  style={styles.containerNumber}>
+                  <Text  style={styles.number}>{notiCount}</Text>
+                </View>
                 <Image
                   style={styles.tabIcon}
                   resizeMode="contain"
                   source={require("../assets/icons/notification-inactive.png")}
                 ></Image>
+                 </View>
               )}
+              {!focused && notiCount == 0 && (
+          <Image
+            style={styles.tabIcon}
+            resizeMode="contain"
+            source={require("../assets/icons/notification-inactive.png")}
+          />
+        )}
             </View>
           ),
         }}
@@ -365,4 +411,16 @@ const styles = StyleSheet.create({
     width: Dimensions.get("window").width * 0.08,
     height: Dimensions.get("window").height * 0.08,
   },
+  containerNumber:{
+   position: "absolute",
+   zIndex: 10000,
+   top:5,
+   right:2
+  },
+  number:{
+    fontFamily: "lexend-medium",
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#F90808",
+  }
 });
