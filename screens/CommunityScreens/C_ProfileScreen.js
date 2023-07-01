@@ -15,8 +15,8 @@ import {
   Dimensions,
   RefreshControl,
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
-import { useForm, Controller } from "react-hook-form";
+// import DropDownPicker from "react-native-dropdown-picker";
+// import { useForm, Controller } from "react-hook-form";
 import React, {
   Component,
   useEffect,
