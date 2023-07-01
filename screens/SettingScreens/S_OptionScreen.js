@@ -13,9 +13,9 @@ export default function S_OptionScreen({ navigation }) {
     <View>
       <TouchableOpacity
         style={styles.btn}
-        //onPress={() => navigation.navigate("HomeTabs")}
+        onPress={() => navigation.navigate("T_SignIn")}
       >
-        <Text style={styles.opt}>Tiếp tục</Text>
+        <Text style={styles.opt}>Đăng xuất</Text>
       </TouchableOpacity>
     </View>
   );

@@ -7,8 +7,17 @@ import {
   Image,
 } from "react-native";
 import React, { Component } from "react";
+import {
+  useNavigation,
+  useScrollToTop,
+  useFocusEffect,
+  useRoute,
+} from "@react-navigation/native";
 
 export default function SignUpScreen({ navigation }) {
+  const route = useRoute();
+  const myUserId = route?.params?.myUserId;
+  console.log(route);
   return (
     <View>
       <TouchableOpacity

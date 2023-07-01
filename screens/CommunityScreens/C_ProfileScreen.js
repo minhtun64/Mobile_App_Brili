@@ -17,6 +17,8 @@ import {
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useForm, Controller } from "react-hook-form";
+import DatePicker from "react-native-datepicker";
+
 import React, {
   Component,
   useEffect,
@@ -802,6 +804,9 @@ export default function C_ProfileScreen({ navigation }) {
   const [addPetName, setAddPetName] = useState(null);
   const [addPetType, setAddPetType] = useState(null);
   const [addPetBreed, setAddPetBreed] = useState(null);
+  const [addPetGender, setAddPetGender] = useState(null);
+  const [addPetBirthdate, setAddPetBirthdate] = useState(null);
+  const [addPetWeight, setAddPetWeight] = useState(null);
   const [addPetHairColor, setAddPetHairColor] = useState(null);
   const [addPetModalVisible, setAddPetModalVisible] = useState(false);
   const { handleSubmit, control } = useForm();
@@ -812,6 +817,13 @@ export default function C_ProfileScreen({ navigation }) {
     { label: "Mèo", value: 2 },
     { label: "Chó", value: 3 },
   ]);
+
+  const [genderOpen, setGenderOpen] = useState(false);
+  const [gender, setGender] = useState([
+    { label: "Đực", value: 1 },
+    { label: "Cái", value: 0 },
+  ]);
+
   const [hairColorOpen, setHairColorOpen] = useState(false);
   const [hairColor, setHairColor] = useState([
     { label: "Vàng", value: "Vàng" },
@@ -823,13 +835,106 @@ export default function C_ProfileScreen({ navigation }) {
     { label: "Nâu đen", value: "Nâu đen" },
     { label: "Xám", value: "Xám" },
   ]);
+
   const onTypeOpen = useCallback(() => {
+    setGenderOpen(false);
     setHairColorOpen(false);
   }, []);
-
+  const onGenderOpen = useCallback(() => {
+    setTypeOpen(false);
+    setHairColorOpen(false);
+  }, []);
   const onHairColorOpen = useCallback(() => {
     setTypeOpen(false);
+    setGenderOpen(false);
   }, []);
+  // TỰ ĐỘNG MỞ KEYBOARD NHẬP TÊN
+  const textInputRef = useRef(null);
+  const onPressInHandler = () => {
+    if (textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  };
+
+  // CHỌN/XÓA ẢNH THÚ CƯNG
+  const [addPetAvatar, setAddPetAvatar] = useState(null);
+  const [isSelectedPetAvatar, setIsSelectedPetAvatar] = useState(false);
+  const pickPetAvatar = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelectedPetAvatar(true);
+      setAddPetAvatar(result.assets[0].uri);
+    }
+  };
+  const removePetAvatar = () => {
+    setIsSelectedPetAvatar(false);
+    setAddPetAvatar(null);
+  };
+
+  const addPet = async () => {
+    try {
+      const petRef = ref(database, `pet/${myUserId}`);
+      // Tạo newPetId mới bằng cách lấy giá trị lớn nhất hiện tại trong pet/${myUserId} và cộng thêm 1
+      const snapshot = await get(petRef);
+      let currentMaxId = 0;
+      if (snapshot.exists()) {
+        const petIds = Object.keys(snapshot.val());
+        currentMaxId = Math.max(...petIds);
+      }
+      const newPetId = currentMaxId + 1;
+
+      const newPetRef = ref(database, `pet/${myUserId}/${newPetId}`);
+      const newPetData = {
+        name: addPetName,
+        type: addPetType,
+        breed: addPetBreed,
+        gender: addPetGender,
+        birthdate: addPetBirthdate,
+        weight: addPetWeight,
+        hairColor: addPetHairColor,
+        avatar: null,
+      };
+      // Upload ảnh thú cưng lên Storage
+      if (isSelectedPetAvatar) {
+        console.log("Có ảnh");
+        const response = await fetch(addPetAvatar);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Pet_Images/${myUserId}/${newPedId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          newPetData.avatar = url;
+        } catch (error) {
+          console.log("Error uploading pet avatar:", error);
+        }
+      }
+      await set(newPetRef, newPetData);
+      console.log("Thêm thú cưng thành công!");
+      setAddPetModalVisible(false);
+      handleRefresh();
+    } catch (error) {
+      console.error("Error adding pet to Firebase:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (addPetModalVisible && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [addPetModalVisible]);
 
   if (!fontLoaded) {
     return null;
@@ -965,7 +1070,10 @@ export default function C_ProfileScreen({ navigation }) {
                 {myProfile && (
                   <TouchableOpacity
                     style={styles.add_pet}
-                    onPress={() => setAddPetModalVisible(true)}
+                    onPress={() => {
+                      setAddPetModalVisible(true);
+                      onPressInHandler();
+                    }}
                   >
                     <Ionicons name="add" size={24} color="#F5817E" />
                   </TouchableOpacity>
@@ -979,10 +1087,15 @@ export default function C_ProfileScreen({ navigation }) {
                       }}
                       onPress={() => openPetInfo(index)}
                     >
-                      {pet.avatar && (
+                      {pet.avatar ? (
                         <Image
                           style={styles.pet_img}
                           source={{ uri: pet.avatar }}
+                        ></Image>
+                      ) : (
+                        <Image
+                          style={styles.pet_img}
+                          source={require("../../assets/images/avatar_pet.png")}
                         ></Image>
                       )}
 
@@ -1062,7 +1175,7 @@ export default function C_ProfileScreen({ navigation }) {
                     justifyContent: "center",
                     alignItems: "center",
                   }}
-                  onPress={closePetInfo}
+                  // onPress={closePetInfo}
                 >
                   {/* Hình ảnh sẽ hiển thị trong Modal */}
                   <View
@@ -1747,7 +1860,7 @@ export default function C_ProfileScreen({ navigation }) {
           <View
             style={{
               width: "100%",
-              height: 300,
+              height: 700,
               backgroundColor: "#FFF6F6",
               marginTop: -40,
               borderRadius: 24,
@@ -1772,121 +1885,226 @@ export default function C_ProfileScreen({ navigation }) {
             <View style={styles.row7}>
               <View
                 style={{
-                  width: 200,
-                  height: 200,
+                  width: 240,
+                  height: 540,
                   backgroundColor: "#ffffff",
                   borderRadius: 12,
                   marginRight: 16,
                 }}
               >
                 <TextInput
-                  style={styles.pet_name}
+                  style={styles.pet_name_edit}
                   placeholder="Tên thú cưng"
                   value={addPetName}
                   onChangeText={setAddPetName}
+                  ref={textInputRef}
                   // multiline={true}
                 ></TextInput>
-                <View style={styles.row3}>
-                  <Text style={styles.pet_pro}>Loài: </Text>
-                  <Controller
-                    name="gender"
-                    defaultValue=""
-                    control={control}
-                    render={({ field: { onChange, value } }) => (
-                      <View style={styles.dropdownType}>
-                        <DropDownPicker
-                          items={type}
-                          value={addPetType}
-                          open={typeOpen}
-                          setOpen={setTypeOpen}
-                          placeholder="Chọn loài"
-                          placeholderStyle={{ fontFamily: "lexend-light" }}
-                          setValue={setAddPetType}
-                          setItems={setType}
-                          containerStyle={{ height: 20, width: 140 }}
-                          style={styles.dropdown}
-                          labelStyle={{ fontFamily: "lexend-light" }}
-                          onOpen={onTypeOpen}
-                          onChangeValue={onChange}
-                          // itemStyle={{
-                          //   justifyContent: "flex-start",
-                          // }}
-                          dropDownStyle={{ backgroundColor: "#fafafa" }}
-                          zIndex={3000}
-                          zIndexInverse={1000}
-                        />
-                      </View>
-                    )}
-                  />
-                </View>
-                <View style={styles.row3}>
-                  <Text style={styles.pet_pro}>Giống: </Text>
+
+                <Text style={styles.pet_pro}>Loài: </Text>
+                <DropDownPicker
+                  items={type}
+                  value={addPetType}
+                  open={typeOpen}
+                  setOpen={setTypeOpen}
+                  placeholder="Chọn loài"
+                  placeholderStyle={{ fontFamily: "lexend-light" }}
+                  setValue={setAddPetType}
+                  setItems={setType}
+                  style={styles.dropdown}
+                  labelStyle={{ fontFamily: "lexend-light" }}
+                  onOpen={onTypeOpen}
+                  labelProps={{
+                    numberOfLines: 1,
+                  }}
+                  containerStyle={{
+                    margin: 20,
+                    marginTop: 8,
+                    marginBottom: 8,
+                    width: 200,
+                  }}
+                  dropDownStyle={{ backgroundColor: "#fafafa", marginLeft: 20 }}
+                  zIndex={3000}
+                  zIndexInverse={1000}
+                />
+                <Text style={styles.pet_pro}>Giống: </Text>
+                <View style={styles.pet_info_input}>
                   <TextInput
                     style={styles.pet_pro_val}
-                    // placeholder="Tên thú cưng"
+                    placeholder="Giống thú cưng"
                     value={addPetBreed}
                     onChangeText={setAddPetBreed}
                     // multiline={true}
                   ></TextInput>
                 </View>
-                <View style={styles.row3}>
-                  <Text style={styles.pet_pro}>Giới tính: </Text>
-                  {/* {pet.gender === 0 && (
-                    <Text style={styles.pet_pro_val}>Cái</Text>
-                  )}
-                  {pet.gender === 1 && (
-                    <Text style={styles.pet_pro_val}>Đực</Text>
-                  )} */}
-                </View>
-                <View style={styles.row3}>
-                  <Text style={styles.pet_pro}>Tuổi: </Text>
-                  {/* <Text style={styles.pet_pro_val}>
-                    {Math.floor(
-                      moment().diff(
-                        moment(pet.birthdate, "DD-MM-YYYY"),
-                        "years",
-                        true
-                      )
-                    )}
-                  </Text> */}
-                </View>
-                <View style={styles.row3}>
-                  <Text style={styles.pet_pro}>Cân nặng: </Text>
-                  {/* <Text style={styles.pet_pro_val}>0.3 kg</Text> */}
-                </View>
-                <View style={styles.row3}>
-                  <Text style={styles.pet_pro}>Màu lông: </Text>
-                  {/* <Text style={styles.pet_pro_val}>{pet.hairColor}</Text> */}
-                </View>
-              </View>
-              <TouchableOpacity>
-                <Image
-                  style={styles.pet_img}
-                  source={require("../../assets/images/avatar_pet.png")}
-                ></Image>
-                {/* Màn hình xám trong suốt */}
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    backgroundColor: "rgba(0, 0, 0, 0.5)",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: 134,
-                    width: 100,
-                    borderRadius: 12,
+
+                <Text style={styles.pet_pro}>Giới tính: </Text>
+                <DropDownPicker
+                  items={gender}
+                  value={addPetGender}
+                  open={genderOpen}
+                  setOpen={setGenderOpen}
+                  placeholder="Chọn giới tính"
+                  placeholderStyle={{ fontFamily: "lexend-light" }}
+                  setValue={setAddPetGender}
+                  setItems={setGender}
+                  style={styles.dropdown}
+                  labelStyle={{ fontFamily: "lexend-light" }}
+                  onOpen={onGenderOpen}
+                  labelProps={{
+                    numberOfLines: 1,
                   }}
-                >
-                  {/* Icon thay đổi ảnh */}
-                  <View>
-                    <Ionicons name="image-outline" size={24} color="white" />
-                  </View>
+                  containerStyle={{
+                    margin: 20,
+                    marginTop: 8,
+                    marginBottom: 8,
+                    width: 200,
+                  }}
+                  dropDownStyle={{ backgroundColor: "#fafafa", marginLeft: 20 }}
+                  zIndex={3000}
+                  zIndexInverse={1000}
+                />
+
+                <Text style={styles.pet_pro}>Ngày sinh: </Text>
+                <View style={styles.pet_info_input}>
+                  <DatePicker
+                    style={styles.datePicker}
+                    date={addPetBirthdate}
+                    mode="date"
+                    format="DD-MM-YYYY"
+                    placeholder="Chọn ngày sinh"
+                    confirmBtnText="Xác nhận"
+                    cancelBtnText="Hủy"
+                    customStyles={{
+                      dateInput: {
+                        borderWidth: 0,
+                        alignItems: "flex-start",
+                      },
+                      dateText: {
+                        fontFamily: "lexend-light",
+                      },
+                      placeholderText: {
+                        fontFamily: "lexend-light",
+                        color: "#888888",
+                      },
+                    }}
+                    onDateChange={(date) => setAddPetBirthdate(date)}
+                    useNativeDriver
+                  />
                 </View>
-              </TouchableOpacity>
+
+                <Text style={styles.pet_pro}>Cân nặng (kg): </Text>
+                <View style={styles.pet_info_input}>
+                  <TextInput
+                    style={styles.pet_pro_val}
+                    placeholder="Cân nặng thú cưng"
+                    value={addPetWeight}
+                    keyboardType="numbers-and-punctuation"
+                    onChangeText={setAddPetWeight}
+                    // multiline={true}
+                  ></TextInput>
+                </View>
+
+                <Text style={styles.pet_pro}>Màu lông: </Text>
+                <DropDownPicker
+                  items={hairColor}
+                  value={addPetHairColor}
+                  open={hairColorOpen}
+                  setOpen={setHairColorOpen}
+                  placeholder="Chọn màu lông"
+                  placeholderStyle={{ fontFamily: "lexend-light" }}
+                  setValue={setAddPetHairColor}
+                  setItems={setHairColor}
+                  style={styles.dropdown}
+                  labelStyle={{ fontFamily: "lexend-light" }}
+                  onOpen={onHairColorOpen}
+                  labelProps={{
+                    numberOfLines: 1,
+                  }}
+                  containerStyle={{
+                    margin: 20,
+                    marginTop: 8,
+                    marginBottom: 8,
+                    width: 200,
+                  }}
+                  dropDownStyle={{ backgroundColor: "#fafafa", marginLeft: 20 }}
+                  zIndex={3000}
+                  zIndexInverse={1000}
+                />
+              </View>
+              {!isSelectedPetAvatar ? (
+                <TouchableOpacity onPress={pickPetAvatar}>
+                  <Image
+                    style={styles.pet_img}
+                    source={require("../../assets/images/avatar_pet.png")}
+                  ></Image>
+                  {/* Màn hình xám trong suốt */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: 134,
+                      width: 100,
+                      borderRadius: 12,
+                    }}
+                  >
+                    {/* Icon thay đổi ảnh */}
+                    <View>
+                      <Ionicons name="image-outline" size={24} color="white" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={pickPetAvatar}>
+                  <Image
+                    style={styles.pet_img}
+                    source={{ uri: addPetAvatar }}
+                  ></Image>
+                  {/* Màn hình xám trong suốt */}
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: 134,
+                      width: 100,
+                      borderRadius: 12,
+                    }}
+                  >
+                    {/* Icon thay đổi ảnh */}
+                    <View>
+                      <Ionicons name="image-outline" size={24} color="white" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
+            <TouchableOpacity
+              style={styles.add_button}
+              onPress={addPet}
+              disabled={
+                addPetName === "" ||
+                // addPetAvatar === "" ||
+                addPetBirthdate === "" ||
+                addPetBreed === "" ||
+                addPetGender === "" ||
+                addPetHairColor === "" ||
+                addPetType === ""
+              }
+            >
+              <Text style={styles.add}>Thêm</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1895,6 +2113,20 @@ export default function C_ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  datePicker: {
+    width: "100%",
+    marginTop: -4,
+  },
+  pet_info_input: {
+    borderColor: "#B7B7B7",
+    borderWidth: 1,
+    margin: 20,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 8,
+    height: 48,
+    padding: 8,
+  },
   dropdownType: {
     marginHorizontal: 10,
     width: "50%",
@@ -2082,6 +2314,22 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingLeft: 16,
     paddingRight: 16,
+    backgroundColor: "#8F1928",
+    borderRadius: 12,
+    justifyContent: "center", // căn giữa theo chiều dọc
+    alignItems: "center", // căn giữa theo chiều ngang
+  },
+  add: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontFamily: "lexend-medium",
+  },
+  add_button: {
+    height: 40,
+    marginTop: 28,
+    marginBottom: 8,
+    marginLeft: 40,
+    marginRight: 40,
     backgroundColor: "#8F1928",
     borderRadius: 12,
     justifyContent: "center", // căn giữa theo chiều dọc
@@ -2364,6 +2612,13 @@ const styles = StyleSheet.create({
     fontFamily: "lexend-medium",
     alignSelf: "center",
     // marginLeft: "6%",
+  },
+  pet_name_edit: {
+    fontSize: 18,
+    color: "#F5817E",
+    fontFamily: "lexend-medium",
+    alignSelf: "center",
+    marginBottom: 20,
   },
   pet_pro: {
     // fontSize: 18,
