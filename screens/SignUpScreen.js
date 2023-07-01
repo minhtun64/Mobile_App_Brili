@@ -9,7 +9,8 @@ import {
   Dimensions,
   Keyboard,
   Animated,
-
+  Picker,
+  KeyboardAvoidingView,
 } from "react-native";
 import React, {
   Component,
@@ -21,8 +22,9 @@ import React, {
 import { Ionicons } from "@expo/vector-icons";
 import * as Font from "expo-font";
 import { releaseSecureAccess } from "react-native-document-picker";
-
 import DatePicker from "react-native-datepicker";
+import { RadioButton } from "react-native-paper";
+import { CheckBox } from "react-native-elements";
 
 const { height } = Dimensions.get("window");
 const { width } = Dimensions.get("window");
@@ -31,7 +33,11 @@ export default function SignInScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [showPassword, setShowPassword] = useState(true);
   const imageOpacity = useRef(new Animated.Value(1)).current;
-  const [gender, setGender] = useState("");
+  const [checked, setChecked] = useState(false);
+  const [gender, setGender] = useState("male");
+  const handleGenderChange = (value) => {
+    setGender(value);
+  };
 
   useEffect(() => {
     const loadFont = async () => {
@@ -87,26 +93,22 @@ export default function SignInScreen({ navigation }) {
     setShowPassword(!showPassword);
   };
 
-
-
   return (
     <View style={styles.container}>
       <Animated.Image
-        style={[styles.login_img, { opacity: imageOpacity }]}
+        style={[styles.login_img]}
         source={require("../assets/images/signup3.png")}
       />
       <View style={styles.signup_area}>
         <View style={styles.signup_input}>
           <View style={styles.login_area_text_label}>
             <Image
-              source={require("../assets/icons/lock.png")}
+              source={require("../assets/icons/sms.png")}
               style={styles.icon}
             ></Image>
             <TextInput
               style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
+              placeholder="Nhập email"
             ></TextInput>
           </View>
         </View>
@@ -114,12 +116,12 @@ export default function SignInScreen({ navigation }) {
         <View style={styles.signup_input}>
           <View style={styles.login_area_text_label}>
             <Image
-              source={require("../assets/icons/lock.png")}
+              source={require("../assets/icons/icons8-user-48.png")}
               style={styles.icon}
             ></Image>
             <TextInput
               style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
+              placeholder="Nhập họ tên"
               // onFocus={handleFocus}
               // onBlur={handleBlur}
             ></TextInput>
@@ -127,163 +129,160 @@ export default function SignInScreen({ navigation }) {
         </View>
 
         <View style={styles.signup_input}>
-          <View style={styles.login_area_text_label}>
+          <View style={styles.login_area_text_label_lock}>
             <Image
               source={require("../assets/icons/lock.png")}
               style={styles.icon}
             ></Image>
-            <TextInput
-              style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
-            ></TextInput>
+            <View style={styles.login_area_text_label}>
+              <TextInput
+                placeholder="Nhập mật khẩu"
+                secureTextEntry={!showPassword}
+                style={styles.login_area_text_input}
+                // onFocus={handleFocus}
+                // onBlur={handleBlur}
+              ></TextInput>
+              <TouchableOpacity
+                onPress={togglePasswordVisibility}
+                style={styles.icon_password}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#fff"
+                  //style={styles.icon_password}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.signup_input}>
+          <View style={styles.login_area_text_label_lock}>
+            <Image
+              source={require("../assets/icons/lock-circle.png")}
+              style={styles.icon}
+            ></Image>
+            <View style={styles.login_area_text_label}>
+              <TextInput
+                placeholder="Nhập lại mật khẩu lần nữa"
+                secureTextEntry={!showPassword}
+                style={styles.login_area_text_input}
+                // onFocus={handleFocus}
+                // onBlur={handleBlur}
+              ></TextInput>
+              <TouchableOpacity
+                onPress={togglePasswordVisibility}
+                style={styles.icon_password}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color="#fff"
+                  //style={styles.icon_password}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         <View style={styles.signup_input}>
           <View style={styles.login_area_text_label}>
             <Image
-              source={require("../assets/icons/lock.png")}
+              source={require("../assets/icons/cake.png")}
               style={styles.icon}
             ></Image>
-            <TextInput
-              style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
-            ></TextInput>
-          </View>
-        </View>
-
-        <View style={styles.signup_input}>
-          <View style={styles.login_area_text_label}>
-            <Image
-              source={require("../assets/icons/lock.png")}
-              style={styles.icon}
-            ></Image>
-
-            <TextInput
-              style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
-            ></TextInput>
-          </View>
-        </View>
             <DatePicker
-                    style={styles.datePicker}
-                    // date={addPetBirthdate}
-                    mode="date"
-                    format="DD-MM-YYYY"
-                    placeholder="Chọn ngày sinh"
-                    confirmBtnText="Xác nhận"
-                    cancelBtnText="Hủy"
-                    customStyles={{
-                      dateInput: {
-                        borderWidth: 0,
-                        alignItems: "flex-start",
-                      },
-                      dateText: {
-                        fontFamily: "lexend-light",
-                      },
-                      placeholderText: {
-                        fontFamily: "lexend-light",
-                        color: "#888888",
-                      },
-                    }}
-                    // onDateChange={(date) => setAddPetBirthdate(date)}
-                    useNativeDriver
-                  />
+              style={styles.datePicker}
+              // date={addPetBirthdate}
+              mode="date"
+              format="DD-MM-YYYY"
+              placeholder="Chọn ngày sinh"
+              confirmBtnText="Xác nhận"
+              cancelBtnText="Hủy"
+              customStyles={{
+                dateInput: {
+                  borderWidth: 0,
+                  alignItems: "flex-start",
+                },
+                dateText: {
+                  fontFamily: "lexend-light",
+                },
+                placeholderText: {
+                  fontFamily: "lexend-light",
+                  color: "#888888",
+                },
+              }}
+              // onDateChange={(date) => setAddPetBirthdate(date)}
+              useNativeDriver
+            />
+          </View>
+        </View>
+
         <View style={styles.signup_input}>
           <View style={styles.login_area_text_label}>
             <Image
-              source={require("../assets/icons/lock.png")}
+              source={require("../assets/icons/gender.png")}
               style={styles.icon}
             ></Image>
-            <TextInput
-              style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
-            ></TextInput>
+            <View style={styles.radioButtonsContainer}>
+              <View style={styles.radioButton}>
+                <RadioButton
+                  value="female"
+                  status={gender === "female" ? "checked" : "unchecked"}
+                  onPress={() => handleGenderChange("female")}
+                />
+                <Text>Nữ</Text>
+              </View>
+              <View style={styles.radioButton}>
+                <RadioButton
+                  value="male"
+                  status={gender === "male" ? "checked" : "unchecked"}
+                  onPress={() => handleGenderChange("male")}
+                />
+                <Text>Nam</Text>
+              </View>
+              <View style={styles.radioButton}>
+                <RadioButton
+                  value="other"
+                  status={gender === "other" ? "checked" : "unchecked"}
+                  onPress={() => handleGenderChange("other")}
+                />
+                <Text>Khác</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.signup_input_button}>
+          <View style={styles.login_area_text_label}>
+            <CheckBox checked={checked} onPress={() => setChecked(!checked)} />
+
+            <View style={styles.login_area_text_label_signup_policy}>
+              <Text style={styles.font}> Đồng ý với </Text>
+              <TouchableOpacity>
+                <Text style={styles.opt}>chính sách của Brili</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.btn}
+            onPress={() => navigation.navigate("HomeTabs")}
+          >
+            <Text style={styles.opt_login}>ĐĂNG KÝ</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.signup_input}>
+          <View style={styles.login_area_text_label_signup}>
+            <Text style={styles.font}> Đã có tài khoản?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
+              <Text style={styles.opt}> Đăng nhập ngay</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
-
-
-      {/* <View style={styles.login_area}>
-        <View style={styles.logo_area}>
-          <Text style={styles.login_area_logo}>Cùng tham gia</Text>
-          <Image
-            style={styles.logo_img}
-            source={require("../assets/images/logo.png")}
-          />
-        </View>
-        <View style={styles.login_area_text}>
-          <View style={styles.login_area_text_label}>
-            <Image source={require("../assets/icons/sms1.png")} style={styles.icon}></Image>
-            <Text style={styles.font}> Nhập email</Text>
-          </View>
-          <View style={styles.login_area_text_label}>
-            <TextInput
-              style={styles.login_area_text_input}
-              placeholder="petcare@gmail.com"
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
-            ></TextInput>
-          </View>
-
-          <View style={styles.login_area_text_label}>
-            <Image
-              source={require("../assets/icons/lock.png")}
-              style={styles.icon}
-            ></Image>
-            <Text style={styles.font}> Mật khẩu</Text>
-          </View>
-          <View style={styles.login_area_text_label}>
-            <TextInput
-              placeholder="Password"
-              secureTextEntry={!showPassword}
-              style={styles.login_area_text_input}
-              // onFocus={handleFocus}
-              // onBlur={handleBlur}
-            ></TextInput>
-            <TouchableOpacity
-              onPress={togglePasswordVisibility}
-              style={styles.icon_password}
-            >
-              <Ionicons
-                name={showPassword ? "eye-off" : "eye"}
-                size={24}
-                color="#ccc"
-                //style={styles.icon_password}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.forget_pass}>
-            <TouchableOpacity>
-              <Text style={styles.opt}>Quên mật khẩu?</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.login_btn}>
-            <TouchableOpacity
-              style={styles.btn}
-              onPress={() => navigation.navigate("HomeTabs")}
-            >
-              <Text style={styles.opt_login}>ĐĂNG NHẬP</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.login_area_text_label_signup}>
-            <Text style={styles.font}> Tham gia cùng chúng tôi </Text>
-            <TouchableOpacity>
-              <Text style={styles.opt}>ngay tại đây!</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View> */}
     </View>
   );
 }
@@ -305,21 +304,44 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     position: "absolute",
     top: -height * 0.3,
-    zIndex: 1,
   },
 
   signup_area: {
     // top: -height * 0.06,
-    top: 350,
-    paddingRight: width * 0.03,
-    paddingLeft: width * 0.17,
+    top: 340,
+    // paddingRight: width * 0.03,
+    // paddingLeft: width * 0.17,
+    width: "100%",
     position: "absolute",
+    // backgroundColor : "#ffff",
   },
 
   signup_input: {
     paddingRight: width * 0.13,
     paddingBottom: 20,
-    
+    //  left: 20,
+    paddingLeft: 40,
+    // backgroundColor : "#ffff",
+  },
+
+  signup_input_button: {
+    paddingRight: width * 0.13,
+    paddingBottom: 20,
+    //  left: 20,
+    paddingLeft: 40,
+    // backgroundColor : "#ffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  radioButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  radioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 50,
   },
 
   login_area: {
@@ -366,6 +388,11 @@ const styles = StyleSheet.create({
     // paddingLeft: width * 0.1,
   },
 
+  login_area_text_label_lock: {
+    flexDirection: "row",
+    paddingRight: width * 0.06,
+  },
+
   font: {
     fontSize: 14,
     fontWeight: "light",
@@ -390,8 +417,7 @@ const styles = StyleSheet.create({
     fontFamily: "lexend-light",
     color: "black",
     borderWidth: 1,
-    backgroundColor:"#fff",
-
+    backgroundColor: "#fff",
   },
   icon_password: {
     //right: 0,
@@ -435,12 +461,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     color: "#FFFFFF",
-    paddingTop: 15,
+    //paddingTop: 5,
   },
 
   login_area_text_label_signup: {
     flexDirection: "row",
-    paddingTop: 13,
+    // paddingLeft: -60,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  login_area_text_label_signup_policy: {
+    flexDirection: "row",
+    // paddingLeft: -60,
+    left: -15,
     alignItems: "center",
     justifyContent: "center",
   },
