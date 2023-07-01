@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
     fontFamily: "lexend-light",
   },
   messageText: {
+    width: '94%',
     fontSize: 14,
     color: '#333333',
     fontFamily: "lexend-light",
