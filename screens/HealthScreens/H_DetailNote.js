@@ -1,21 +1,18 @@
-import {
-  useRoute,
-} from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
 import { TouchableOpacity, ScrollView, Text, StyleSheet, TouchableWithoutFeedback, KeyboardAvoidingView, View, Image, ImageBackground } from "react-native";
 import { LocaleConfig } from "react-native-calendars";
 import { Calendar } from "react-native-calendars";
-import React, { Component, useCallback, useEffect, useState } from "react";
+import React, { Component, useCallback, useEffect, useState, useContext } from "react";
 import { database } from "../../firebase";
-import { onValue, ref,remove} from "firebase/database";
+import { onValue, ref, remove } from "firebase/database";
 import moment from "moment";
-import PopupModal from '../../components/PopupModal';
+import PopupModal from "../../components/PopupModal";
 
+import { UserContext } from "../../UserIdContext";
 const NOTEBOOK = "NOTEBOOK";
 const HANDBOOK = "HANDBOOK";
 export default function H_DetailNote({ navigation }) {
     //Ví dụ userid
-    const myUserId = "10"; 
-    const userId = 1;
     const [gender, setstatebtn] = useState(NOTEBOOK);
     const [showCalendar, setShowCalendar] = useState(false);
     const [value, setValue] = useState();
@@ -23,23 +20,23 @@ export default function H_DetailNote({ navigation }) {
     const [selectedDate, setSelectedDate] = useState();
     const [currentDate, setCurrentDate] = useState();
     const [currentDateDay, setCurrentDateDay] = useState();
-    
+
     //pop up thông báo
     const [modalVisible, setModalVisible] = useState(false);
-    const [popupType, setPopupType] = useState('');
-    const [popupTitle, setPopupTitle] = useState('');
-    const [popupMessage, setPopupMessage] = useState('');
-    const [popupprimaryButtonText, setPopupprimaryButtonText] = useState('');
+    const [popupType, setPopupType] = useState("");
+    const [popupTitle, setPopupTitle] = useState("");
+    const [popupMessage, setPopupMessage] = useState("");
+    const [popupprimaryButtonText, setPopupprimaryButtonText] = useState("");
     const openModal = (type, title, message, popupprimaryButtonText) => {
         setPopupType(type);
         setPopupTitle(title);
         setPopupMessage(message);
-        setPopupprimaryButtonText(popupprimaryButtonText)
+        setPopupprimaryButtonText(popupprimaryButtonText);
         setModalVisible(true);
     };
-  
+
     const closeModal = () => {
-      setModalVisible(false);
+        setModalVisible(false);
     };
     const handlePressOutsidePopup = useCallback(() => {
         setShowCalendar(false);
@@ -47,80 +44,80 @@ export default function H_DetailNote({ navigation }) {
 
     const [selectedTime, setSelectedTime] = useState();
     const [petImages, setPetImages] = useState([]);
-   // NoteId được chọn từ màn hình trước
+    // NoteId được chọn từ màn hình trước
     const route = useRoute();
-    const [noteId, setNoteId] = useState(route?.params?.noteID)
-    const userID = 1;
+    const [noteId, setNoteId] = useState(route?.params?.noteID);
+    const userID = useContext(UserContext).userId;
 
     const [noteData, setNoteData] = useState(null);
     const getNoteData = async () => {
         if (noteId != null) {
-          const noteDataRef = ref(database, `note/${userID}/${noteId}`);
-          onValue(noteDataRef, (snapshot) => {
-            if (snapshot.exists()) {
-              const noteData = snapshot.val();
-              //Lấy các pet được chọn
-              const petSelectedRef = ref(database, `note/${userID}/${noteId}/pet`);
-              onValue(petSelectedRef, (snapshot) => {
-                const petselectedData = snapshot.val();
-                if (petselectedData) { // Kiểm tra petselectedData không phải là null
-                  const petKeys = Object.keys(petselectedData);
-      
-                  //lấy các pet user
-                  const petImagesRef = ref(database, `pet/${userID}`);
-                  onValue(petImagesRef, (snapshot) => {
-                    const petImagesData = snapshot.val();
-                    if (petImagesData) { // Kiểm tra petImagesData không phải là null
-                      const petImagesArray = Object.entries(petImagesData).map(([petId, petData]) => ({
-                        petId: petId,
-                        avatar: petData.avatar,
-                        isChecked: false,
-                      }));
-      
-                      petImagesArray.forEach((pet) => {
-                        if (petKeys.includes(pet.petId)) {
-                          pet.isChecked = true;
+            const noteDataRef = ref(database, `note/${userID}/${noteId}`);
+            onValue(noteDataRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const noteData = snapshot.val();
+                    //Lấy các pet được chọn
+                    const petSelectedRef = ref(database, `note/${userID}/${noteId}/pet`);
+                    onValue(petSelectedRef, (snapshot) => {
+                        const petselectedData = snapshot.val();
+                        if (petselectedData) {
+                            // Kiểm tra petselectedData không phải là null
+                            const petKeys = Object.keys(petselectedData);
+
+                            //lấy các pet user
+                            const petImagesRef = ref(database, `pet/${userID}`);
+                            onValue(petImagesRef, (snapshot) => {
+                                const petImagesData = snapshot.val();
+                                if (petImagesData) {
+                                    // Kiểm tra petImagesData không phải là null
+                                    const petImagesArray = Object.entries(petImagesData).map(([petId, petData]) => ({
+                                        petId: petId,
+                                        avatar: petData.avatar,
+                                        isChecked: false,
+                                    }));
+
+                                    petImagesArray.forEach((pet) => {
+                                        if (petKeys.includes(pet.petId)) {
+                                            pet.isChecked = true;
+                                        }
+                                    });
+
+                                    setPetImages(petImagesArray);
+                                }
+                            });
                         }
-                      });
-      
-                      setPetImages(petImagesArray);
+                    });
+                    //Lấy dữ liệu từ firebase và set giá trị cho các biến để có thể xem thông tin
+                    if (noteData) {
+                        setValue(noteData.description);
+                        setValue2(noteData.title);
+                        setCurrentDate(moment(noteData.date, "DD-MM-YYYY").format("DD/MM/YYYY"));
+                        setCurrentDateDay(moment(noteData.date, "DD-MM-YYYY").format("dddd"));
+                        setSelectedDate(moment(noteData.date, "DD-MM-YYYY").format("YYYY-MM-DD"));
+                        setSelectedTime(noteData.time);
                     }
-                  });
                 }
-              });
-              //Lấy dữ liệu từ firebase và set giá trị cho các biến để có thể xem thông tin
-              if (noteData) {
-                setValue(noteData.description);
-                setValue2(noteData.title);
-                setCurrentDate(moment(noteData.date, "DD-MM-YYYY").format("DD/MM/YYYY"));
-                setCurrentDateDay(moment(noteData.date, "DD-MM-YYYY").format("dddd"));
-                setSelectedDate(moment(noteData.date, "DD-MM-YYYY").format("YYYY-MM-DD"));
-                setSelectedTime(noteData.time);
-              }
+            });
+        }
+    };
+
+    //Xử lý nếu chọn tiếp tục thì sẽ xóa
+    const handleContinue = () => {
+        try {
+            const noteDataRef = ref(database, `note/${userID}/${noteId}`);
+            if (noteDataRef) {
+                remove(noteDataRef);
+                console.log(noteId);
+                navigation.navigate("H_Note");
             }
-          });
+        } catch (error) {
+            console.error("Lỗi khi tiếp tục sau khi xóa note:", error);
         }
-      };
+    };
 
-//Xử lý nếu chọn tiếp tục thì sẽ xóa
-  const handleContinue =  () => {
-    try {
-        const noteDataRef = ref(database, `note/${userID}/${noteId}`);
-        if (noteDataRef) {
-          remove(noteDataRef);
-          console.log(noteId);
-          navigation.navigate("H_Note");
-        }
-      } catch (error) {
-        console.error("Lỗi khi tiếp tục sau khi xóa note:", error);
-      }
-  };
-
-
-  useEffect(() => {
-    getNoteData();
-  }, []);
-
+    useEffect(() => {
+        getNoteData();
+    }, []);
 
     LocaleConfig.locales[LocaleConfig.defaultLocale].dayNamesShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     LocaleConfig.locales[LocaleConfig.defaultLocale].monthNames = [
@@ -139,7 +136,7 @@ export default function H_DetailNote({ navigation }) {
     ];
     return (
         <View style={styles.container}>
-              <PopupModal
+            <PopupModal
                 visible={modalVisible}
                 type={popupType}
                 title={popupTitle}
@@ -167,7 +164,10 @@ export default function H_DetailNote({ navigation }) {
                         </TouchableOpacity>
 
                         <TouchableOpacity>
-                            <Text style={styles.textCalendar}>  {currentDateDay},{currentDate}</Text>
+                            <Text style={styles.textCalendar}>
+                                {" "}
+                                {currentDateDay},{currentDate}
+                            </Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.textCalendar2}></TouchableOpacity>
                     </View>
@@ -180,9 +180,7 @@ export default function H_DetailNote({ navigation }) {
                                         <Text style={styles.titleTask}>Tên công việc</Text>
                                     </View>
                                     <View style={styles.description}>
-                                      <Text style={styles.descriptionTask}>
-                                      {value2}
-                                      </Text>
+                                        <Text style={styles.descriptionTask}>{value2}</Text>
                                     </View>
                                 </View>
                                 <View style={styles.containerComponent}>
@@ -190,9 +188,7 @@ export default function H_DetailNote({ navigation }) {
                                         <Text style={styles.titleTask}>Mô tả chi tiết</Text>
                                     </View>
                                     <View style={[styles.description, { minHeight: 100, justifyContent: "flex-start" }]}>
-                                      <Text style={styles.descriptionTask}>
-                                        {value}
-                                      </Text>
+                                        <Text style={styles.descriptionTask}>{value}</Text>
                                     </View>
                                 </View>
 
@@ -214,7 +210,7 @@ export default function H_DetailNote({ navigation }) {
                                             <Text style={styles.titleTask}>Giờ</Text>
                                         </View>
                                         <View style={[styles.description, styles.btnIcon]}>
-                                            <TouchableOpacity >
+                                            <TouchableOpacity>
                                                 <Image style={styles.iconCalendar} source={require("../../assets/icons/clock.png")}></Image>
                                             </TouchableOpacity>
                                             <Text style={[styles.descriptionTask, styles.icontime]}>{selectedTime}</Text>
@@ -224,21 +220,20 @@ export default function H_DetailNote({ navigation }) {
                             </View>
                             <View style={styles.containerListAvt}>
                                 <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                                {petImages
-                                  .filter((petImage) => petImage.isChecked) // Lọc chỉ những petImage có isChecked = true
-                                  .map((petImage) => (
-                                    <View style={styles.containerAvt} key={petImage.petId}>
-                                      <Image style={styles.avatar} source={{ uri: petImage.avatar }} />
-                                     
-                                    </View>
-                                  ))}
+                                    {petImages
+                                        .filter((petImage) => petImage.isChecked) // Lọc chỉ những petImage có isChecked = true
+                                        .map((petImage) => (
+                                            <View style={styles.containerAvt} key={petImage.petId}>
+                                                <Image style={styles.avatar} source={{ uri: petImage.avatar }} />
+                                            </View>
+                                        ))}
                                 </ScrollView>
                             </View>
                             <View style={styles.containerBtn}>
                                 <TouchableOpacity style={styles.btnDelete} onPress={handleContinue}>
                                     <Text style={styles.textDelete}>Xóa</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.btnUpdate} onPress={() => navigation.navigate("H_UpdateNote",{ noteID: noteId})}>
+                                <TouchableOpacity style={styles.btnUpdate} onPress={() => navigation.navigate("H_UpdateNote", { noteID: noteId })}>
                                     <Text style={styles.textUpdate}>Cập nhật</Text>
                                 </TouchableOpacity>
                             </View>
@@ -501,13 +496,12 @@ const styles = StyleSheet.create({
     showPopUp: {
         display: "inline-block",
     },
-      titleTask:{
-    fontFamily: "lexend-medium",
-    color:'background: rgba(165, 26, 41, 1)',
-    fontSize:16,
-
-  },
-  icontime:{
-    marginRight: 20,
-  }
+    titleTask: {
+        fontFamily: "lexend-medium",
+        color: "background: rgba(165, 26, 41, 1)",
+        fontSize: 16,
+    },
+    icontime: {
+        marginRight: 20,
+    },
 });

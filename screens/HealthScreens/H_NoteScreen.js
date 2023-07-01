@@ -1,12 +1,14 @@
 import { TouchableOpacity, Button, ScrollView, Text, StyleSheet, TouchableWithoutFeedback, View, Image, ImageBackground, TextInput } from "react-native";
 import * as Font from "expo-font";
 import { LocaleConfig } from "react-native-calendars";
-import React, { Component, useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useContext } from "react";
 import { database } from "../../firebase";
-import { onValue, ref, get, set, push, off } from "firebase/database";
+import { onValue, ref, off } from "firebase/database";
 import { Calendar } from "react-native-calendars";
 import moment from "moment";
 import "moment/locale/vi";
+import { UserContext } from "../../UserIdContext";
+
 const NOTEBOOK = "NOTEBOOK";
 const HANDBOOK = "HANDBOOK";
 moment.locale("vi");
@@ -17,9 +19,9 @@ export default function H_NoteScreen({ navigation }) {
     const [showCalendar, setShowCalendar] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [currentDate, setCurrentDate] = useState(moment().format("dddd DD/MM/YYYY"));
-
+    const userID = useContext(UserContext).userId;
     const handleDayPress = (day) => {
-        setSelectedDate(day.dateString);  
+        setSelectedDate(day.dateString);
         setCurrentDate(moment(day.dateString).format("dddd DD/MM/YYYY"));
         setShowCalendar(false);
     };
@@ -33,14 +35,14 @@ export default function H_NoteScreen({ navigation }) {
     const handlePrevDay = () => {
         const newDate = moment(currentDate, "dddd, DD/MM/YYYY").subtract(1, "days").format("dddd, DD/MM/YYYY");
         const newDate2 = moment(currentDate, "dddd, DD/MM/YYYY").subtract(1, "days").format("YYYY-MM-DD");
-        setSelectedDate(newDate2)
+        setSelectedDate(newDate2);
         setCurrentDate(newDate);
     };
 
     const handleNextDay = () => {
         const newDate = moment(currentDate, "dddd, DD/MM/YYYY").add(1, "days").format("dddd, DD/MM/YYYY");
         const newDate2 = moment(currentDate, "dddd, DD/MM/YYYY").add(1, "days").format("YYYY-MM-DD");
-        setSelectedDate(newDate2)
+        setSelectedDate(newDate2);
         setCurrentDate(newDate);
     };
     const customTheme = {
@@ -51,20 +53,23 @@ export default function H_NoteScreen({ navigation }) {
     const [notes, setNotes] = useState([]);
 
     useEffect(() => {
-        const userID = 1;
+        // const userID = useContext(UserContext).userId;
+
         const notesRef = ref(database, `note/${userID}`);
         onValue(notesRef, (snapshot) => {
             const notesData = snapshot.val();
             if (notesData !== null) {
-                const filteredNotes = Object.entries(notesData).map(([noteID, note]) => {
-                  // Gán ID cho mỗi ghi chú
-                  note.noteID = noteID;
-                  return note;
-                }).filter((note) => moment(note.date, "DD-MM-YYYY").isSame(selectedDate, "day"));
+                const filteredNotes = Object.entries(notesData)
+                    .map(([noteID, note]) => {
+                        // Gán ID cho mỗi ghi chú
+                        note.noteID = noteID;
+                        return note;
+                    })
+                    .filter((note) => moment(note.date, "DD-MM-YYYY").isSame(selectedDate, "day"));
                 setNotes(filteredNotes);
-              } else {
+            } else {
                 setNotes([]); // Không có ghi chú, đặt mảng rỗng cho setNotes
-              }
+            }
             console.log(notes);
         });
 
@@ -142,8 +147,7 @@ export default function H_NoteScreen({ navigation }) {
                     <View style={styles.lineCalendar}></View>
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.containerListTask}>
                         {notes.map((note) => (
-                          
-                            <TouchableOpacity key={note.noteID}  onPress={() => navigation.navigate("H_DetailNote",{ noteID: note.noteID})}>
+                            <TouchableOpacity key={note.noteID} onPress={() => navigation.navigate("H_DetailNote", { noteID: note.noteID })}>
                                 <View style={styles.taskItem}>
                                     <View style={styles.containertaskTitle}>
                                         <Text style={styles.taskTitle}>{note.title}</Text>
@@ -152,7 +156,7 @@ export default function H_NoteScreen({ navigation }) {
                                         <Text style={styles.taskTime}>{note.time}</Text>
                                     </View>
 
-                                    <TouchableOpacity onPress={() => navigation.navigate("H_UpdateNote",{ noteID: note.noteID})}>
+                                    <TouchableOpacity onPress={() => navigation.navigate("H_UpdateNote", { noteID: note.noteID })}>
                                         <Image style={styles.taskEditIcon} source={require("../../assets/icons/editIcon.png")} />
                                     </TouchableOpacity>
                                 </View>

@@ -3,48 +3,51 @@ import Checkbox from "expo-checkbox";
 import * as Font from "expo-font";
 import { LocaleConfig } from "react-native-calendars";
 import { Calendar } from "react-native-calendars";
-import React, { Component, useCallback, useEffect, useState, useRef } from "react";
+import React, { Component, useCallback, useEffect, useState, useRef, useContext } from "react";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { database } from "../../firebase";
 import { onValue, ref, get, set, push, off } from "firebase/database";
 import moment from "moment";
+import PopupModal from "../../components/PopupModal";
 
-import PopupModal from '../../components/PopupModal';
+import { UserContext } from "../../UserIdContext";
+
 const NOTEBOOK = "NOTEBOOK";
 const HANDBOOK = "HANDBOOK";
 export default function H_NoteScreen({ navigation }) {
     //Ví dụ userid
-    // const myUserId = "10"; 
-    const userId = 1;
+    // const myUserId = "10";
+    const userId = useContext(UserContext).userId;
     const [gender, setstatebtn] = useState(NOTEBOOK);
     const [fontLoaded, setFontLoaded] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
     const [value, setValue] = useState("");
     const [value2, setValue2] = useState("");
+
     const [selectedDate, setSelectedDate] = useState(moment().format("YYYY-MM-DD"));
     const [currentDate, setCurrentDate] = useState(moment().format("DD/MM/YYYY"));
-    const [listNoteId, setListNoteId] = useState([])
-    
+
+    const [listNoteId, setListNoteId] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
-    const [popupType, setPopupType] = useState('');
-    const [popupTitle, setPopupTitle] = useState('');
-    const [popupMessage, setPopupMessage] = useState('');
+    const [popupType, setPopupType] = useState("");
+    const [popupTitle, setPopupTitle] = useState("");
+    const [popupMessage, setPopupMessage] = useState("");
     const openModal = (type, title, message) => {
         setPopupType(type);
         setPopupTitle(title);
         setPopupMessage(message);
         setModalVisible(true);
     };
-  
+
     const closeModal = () => {
-      setModalVisible(false);
-      navigation.goBack();
+        setModalVisible(false);
+        navigation.goBack();
     };
 
     const handleDayPress = (day) => {
         setSelectedDate(day.dateString);
         // Ẩn popup calendar sau khi chọn ngày
-        setCurrentDate(moment(day.dateString).format("DD/MM/YYYY"))
+        setCurrentDate(moment(day.dateString).format("DD/MM/YYYY"));
         setShowCalendar(false);
     };
     const handlePressOutsidePopup = useCallback(() => {
@@ -59,7 +62,7 @@ export default function H_NoteScreen({ navigation }) {
     };
 
     const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
-    const [selectedTime, setSelectedTime] = useState(moment().format('HH:mm'));
+    const [selectedTime, setSelectedTime] = useState(moment().format("HH:mm"));
 
     const showTimePicker = () => {
         setTimePickerVisibility(true);
@@ -69,13 +72,13 @@ export default function H_NoteScreen({ navigation }) {
     };
 
     const handleTimeConfirm = (time) => {
-        setSelectedTime(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        setSelectedTime(time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
         hideTimePicker();
-      };
+    };
     const [petImages, setPetImages] = useState([]);
 
     useEffect(() => {
-        const petImagesRef = ref(database, `pet/${userId}`);     
+        const petImagesRef = ref(database, `pet/${userId}`);
         onValue(petImagesRef, (snapshot) => {
             const petImagesData = snapshot.val();
             if (petImagesData) {
@@ -84,14 +87,13 @@ export default function H_NoteScreen({ navigation }) {
                     avatar: petData.avatar,
                     isChecked: false,
                 }));
-                setPetImages(petImagesArray);           
-            }         
-        }); 
+                setPetImages(petImagesArray);
+            }
+        });
         return () => {
             off(petImagesRef);
         };
     }, [userId]);
-  
 
     // PetImages(1);
 
@@ -101,53 +103,47 @@ export default function H_NoteScreen({ navigation }) {
         setPetImages(updatedPetImages);
     };
 
-// Thêm một node mới
+    // Thêm một node mới
     useEffect(() => {
         const noteRef = ref(database, `note/${userId}`);
         get(noteRef).then((snapshot) => {
-        const data = snapshot.val();
-        const listNoteId = Object.keys(data);
-        setListNoteId(listNoteId);
+            const data = snapshot.val();
+            const listNoteId = Object.keys(data);
+            setListNoteId(listNoteId);
         });
     }, []);
 
     const handleAddNote = () => {
         if (value === "") {
-          return;
+            return;
         }
         let maxNoteId = 0;
-        if(listNoteId.length > 0){
+        if (listNoteId.length > 0) {
             maxNoteId = Math.max(...listNoteId);
         }
-     
+
         const newNoteId = maxNoteId + 1;
         const newNoteRef = ref(database, `note/${userId}/${newNoteId}`);
-        // const newNoteData = {
-        //   date: moment(currentDate,"DD/MM/YYYY").format("DD-MM-YYYY"),
-        //   description: value,
-        //   pet: petImages
-        //     .filter(image => image.isChecked)
-        //     .map(image => ({ [`${image.petId}`]: "" })),
-        //   time: selectedTime,
-        //   title: value2,
-        // };
         const newNoteData = petImages
-        .filter(image => image.isChecked)
-        .reduce((acc, image) => {
-            acc.pet[image.petId] = "";
-            return acc;
-        }, {
-            date: moment(currentDate, "DD/MM/YYYY").format("DD-MM-YYYY"),
-            description: value,
-            pet: {},
-            time: selectedTime,
-            title: value2,
-        });
-        console.log(newNoteData)
-        if(set(newNoteRef, newNoteData)){
-            openModal('success', 'Thành công', 'Đây là thông báo thành công')
+            .filter((image) => image.isChecked)
+            .reduce(
+                (acc, image) => {
+                    acc.pet[image.petId] = "";
+                    return acc;
+                },
+                {
+                    date: moment(currentDate, "DD/MM/YYYY").format("DD-MM-YYYY"),
+                    description: value,
+                    pet: {},
+                    time: selectedTime,
+                    title: value2,
+                }
+            );
+        console.log(newNoteData);
+        if (set(newNoteRef, newNoteData)) {
+            openModal("success", "Thành công", "Đây là thông báo thành công");
         }
-        console.log(selectedDate)
+        console.log(selectedDate);
     };
 
     LocaleConfig.locales[LocaleConfig.defaultLocale].dayNamesShort = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -167,13 +163,7 @@ export default function H_NoteScreen({ navigation }) {
     ];
     return (
         <View style={styles.container}>
-             <PopupModal
-                visible={modalVisible}
-                type={popupType}
-                title={popupTitle}
-                message={popupMessage}
-                onClose={closeModal}
-            />
+            <PopupModal visible={modalVisible} type={popupType} title={popupTitle} message={popupMessage} onClose={closeModal} />
             <ImageBackground source={require("../../assets/imagesHealthScreen/imageBackground7.png")} style={styles.image}>
                 <View style={styles.toggleBtn}>
                     <TouchableOpacity onPress={() => setstatebtn(NOTEBOOK)} style={[styles.OptionTab, gender == NOTEBOOK ? styles.GenderActive : null]}>
@@ -275,7 +265,7 @@ export default function H_NoteScreen({ navigation }) {
                                 </ScrollView>
                             </View>
                             <View style={styles.containerBtn}>
-                                <TouchableOpacity style={styles.btnDelete} >
+                                <TouchableOpacity style={styles.btnDelete}>
                                     <Text style={styles.textDelete}>Hủy</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.btnUpdate} onPress={handleAddNote}>
