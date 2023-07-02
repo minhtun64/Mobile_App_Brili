@@ -25,7 +25,6 @@ import * as Font from "expo-font";
 import { Icon } from "react-native-elements";
 
 import { useSwipe } from "../../hooks/useSwipe";
-import { AntDesign } from "@expo/vector-icons";
 import { saveNotification } from "../../components/utils";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { Snackbar } from "react-native-paper";
