@@ -6,7 +6,7 @@ import {
   View,
   Image,
   TextInput,
-  Button
+  KeyboardAvoidingView
 } from "react-native";
 import { Fontisto } from '@expo/vector-icons';
 import React, { useEffect, useState, useRef, useContext } from "react";
@@ -18,7 +18,9 @@ import Receiver from "../../components/receiver";
 
 export default function M_ChatListScreen({ navigation, route }) {
   const { propId, propName, propAvatar } = route.params;
-  const myUserId = useContext(UserContext).userId;
+  const myUserIdStr = useContext(UserContext).userId;
+  const myUserId = 3; // VÍ DỤ
+  console.log(myUserIdStr)
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -97,7 +99,12 @@ export default function M_ChatListScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+      enabled
+      keyboardVerticalOffset={Platform.select({ ios: 0, android: 500 })}
+    >
       <View style={[styles.header, styles.row]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Image
@@ -146,7 +153,7 @@ export default function M_ChatListScreen({ navigation, route }) {
         </TouchableOpacity>
 
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -161,7 +168,7 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    paddingTop: '8%',
+    paddingTop: '10%',
     paddingBottom: '2%',
     alignItems: 'center',
     borderWidth: 0.5,

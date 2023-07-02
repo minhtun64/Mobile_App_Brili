@@ -10,8 +10,8 @@ const Sender = (props) => {
     return (
         <View style={styles.container}>
             <View style={styles.textView}>
-                <Text style={{color: '#fff'}}>{content}</Text>
-                <Text style={{alignSelf: 'flex-end', fontSize: 11, color: '#fff'}}>{timestamp}</Text>
+                <Text style={{color: '#fff', fontSize: 14}}>{content}</Text>
+                <Text style={{alignSelf: 'flex-end', fontSize: 12, color: '#fff'}}>{timestamp}</Text>
             </View>
         </View>
     )
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row-reverse',
         width: '100%',
-        marginTop: 3,
+        marginTop: 4,
     },
     textView: {
         backgroundColor: '#f9bebf',

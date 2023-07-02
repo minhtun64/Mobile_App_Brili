@@ -14,8 +14,8 @@ const Receiver = (props) => {
                 style={styles.userAvatar}
                 source={{ uri: userAvatar }} />
             <View style={styles.textView}>
-                <Text style={{alignSelf: 'flex-end'}}>{content}</Text>
-                <Text style={{alignSelf: 'flex-start', fontSize: 11, color: '#666'}}>{timestamp}</Text>
+                <Text style={{alignSelf: 'flex-end', fontSize: 14}}>{content}</Text>
+                <Text style={{alignSelf: 'flex-start', fontSize: 12, color: '#666'}}>{timestamp}</Text>
             </View>
         </View>
     )
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         flexDirection: 'row',
-        marginBottom: 3,
+        marginBottom: 4,
     },
     textView: {
         backgroundColor: '#F3F3F3',
