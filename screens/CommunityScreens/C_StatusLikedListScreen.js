@@ -19,6 +19,7 @@ import React, {
   useState,
   useLayoutEffect,
   useRef,
+  useContext,
 } from "react";
 import {
   useNavigation,
@@ -31,11 +32,12 @@ import { useSwipe } from "../../hooks/useSwipe";
 
 import { database } from "../../firebase";
 import { onValue, ref, get, set, push } from "firebase/database";
+import { UserContext } from "../../UserIdContext";
 
 export default function C_StatusLikedListScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
 
   const route = useRoute();
   const [likedUsers, setLikedUsers] = useState(route?.params?.likedUsers || []);
@@ -70,58 +72,58 @@ export default function C_StatusLikedListScreen({ navigation }) {
     loadFont();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Sắp xếp lại danh sách likedUsers
-      const sortedLikedUsers = likedUsers.sort((a, b) => {
-        if (a.userId.toString() === myUserId) {
-          return -1; // Đưa tài khoản của bạn lên đầu danh sách
-        } else if (b.userId.toString() === myUserId) {
-          return 1; // Đưa tài khoản của bạn lên đầu danh sách
-        } else {
-          return 0; // Giữ nguyên vị trí của các người dùng khác
-        }
-      });
-
-      const getLikedUsersInfo = async (likedUsers) => {
-        const usersInfo = await Promise.all(
-          likedUsers.map(async (user) => {
-            const userId = user.userId.toString();
-            const userRef = ref(database, `user/${userId}`);
-            const userSnapshot = await get(userRef);
-            const userData = userSnapshot.val();
-            const followRef = ref(database, `follow/${myUserId}/${userId}`);
-            const followSnapshot = await get(followRef);
-            const isFollowing = !!followSnapshot.exists();
-            return {
-              userId: userId,
-              userName: userData.name,
-              userAvatar: userData.avatar,
-              userIntro: userData.intro,
-              isFollowing: isFollowing,
-            };
-          })
-        );
-        return usersInfo;
-      };
-
-      const likedUsersInfo = await getLikedUsersInfo(sortedLikedUsers);
-      const updatedLikedUsers = sortedLikedUsers.map((user) => {
-        const userId = user.userId.toString();
-        const userInfo = likedUsersInfo.find((info) => info.userId === userId);
-        return {
-          userId: userId,
-          userName: userInfo.userName,
-          userAvatar: userInfo.userAvatar,
-          userIntro: userInfo.userIntro,
-          isFollowing: userInfo.isFollowing,
-        };
-      });
-      setLikedUsers(updatedLikedUsers);
+  const fetchData = async () => {
+    // Sắp xếp lại danh sách likedUsers
+    const sortedLikedUsers = likedUsers.sort((a, b) => {
+      if (a.userId.toString() === myUserId) {
+        return -1; // Đưa tài khoản của bạn lên đầu danh sách
+      } else if (b.userId.toString() === myUserId) {
+        return 1; // Đưa tài khoản của bạn lên đầu danh sách
+      } else {
+        return 0; // Giữ nguyên vị trí của các người dùng khác
+      }
+    });
+    console.log(sortedLikedUsers);
+    const getLikedUsersInfo = async (likedUsers) => {
+      const usersInfo = await Promise.all(
+        likedUsers.map(async (user) => {
+          const userId = user.userId.toString();
+          const userRef = ref(database, `user/${userId}`);
+          const userSnapshot = await get(userRef);
+          const userData = userSnapshot.val();
+          const followRef = ref(database, `follow/${myUserId}/${userId}`);
+          const followSnapshot = await get(followRef);
+          const isFollowing = !!followSnapshot.exists();
+          return {
+            userId: userId,
+            userName: userData.name,
+            userAvatar: userData.avatar,
+            userIntro: userData.intro,
+            isFollowing: isFollowing,
+          };
+        })
+      );
+      return usersInfo;
     };
-    fetchData();
-  }, [likedUsers]);
 
+    const likedUsersInfo = await getLikedUsersInfo(sortedLikedUsers);
+    const updatedLikedUsers = sortedLikedUsers.map((user) => {
+      const userId = user.userId.toString();
+      const userInfo = likedUsersInfo.find((info) => info.userId === userId);
+      return {
+        userId: userId,
+        userName: userInfo.userName,
+        userAvatar: userInfo.userAvatar,
+        userIntro: userInfo.userIntro,
+        isFollowing: userInfo.isFollowing,
+      };
+    });
+    setLikedUsers(updatedLikedUsers);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
   // XỬ LÝ CÁC THAO TÁC QUẸT MÀN HÌNH
   const panResponder = useSwipe(
     () => {

@@ -19,6 +19,7 @@ import React, {
   useState,
   useLayoutEffect,
   useRef,
+  useContext,
 } from "react";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import * as Font from "expo-font";
@@ -33,6 +34,7 @@ import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import * as Speech from "expo-speech";
 import getStatusInfo from "../../firebase_functions/getStatusInfo";
+import { UserContext } from "../../UserIdContext";
 
 const Tab = createMaterialTopTabNavigator();
 const recordingOptions = {
@@ -56,7 +58,7 @@ const recordingOptions = {
   },
 };
 export default function C_SearchScreen({ navigation }) {
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
   const [fontLoaded, setFontLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasSubmittedQuery, setHasSubmittedQuery] = useState(false);
@@ -207,6 +209,7 @@ export default function C_SearchScreen({ navigation }) {
 
   useEffect(() => {
     if (searchQuery != "") {
+      console.log("tìm lại");
       searchPosts();
       searchUsers();
       searchClinics();
@@ -214,6 +217,7 @@ export default function C_SearchScreen({ navigation }) {
   }, [searchQuery]);
 
   const handleSearchSubmit = () => {
+    console.log("tìm");
     if (searchQuery != "") {
       setHasSubmittedQuery(true);
       searchPosts();
@@ -238,7 +242,13 @@ export default function C_SearchScreen({ navigation }) {
                   return (
                     <View style={styles.row5} key={user.userId}>
                       <View style={styles.row4}>
-                        <TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() =>
+                            navigation.navigate("C_Profile", {
+                              userId: user.userId,
+                            })
+                          }
+                        >
                           {/* Ảnh đại diện người dùng */}
                           <Image
                             style={styles.avatar60}
@@ -246,7 +256,13 @@ export default function C_SearchScreen({ navigation }) {
                           ></Image>
                         </TouchableOpacity>
                         <View>
-                          <TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() =>
+                              navigation.navigate("C_Profile", {
+                                userId: user.userId,
+                              })
+                            }
+                          >
                             {/* Tên người dùng */}
                             <Text style={styles.account_name}>
                               {user.userName}
@@ -648,8 +664,10 @@ export default function C_SearchScreen({ navigation }) {
     const usersSnapshot = await get(usersRef);
     const users = [];
     if (usersSnapshot.exists()) {
+      console.log("Tồn tại");
       usersSnapshot.forEach((userSnapshot) => {
         const user = userSnapshot.val();
+        console.log(user);
         if (
           user.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           user.role == 1
@@ -664,7 +682,7 @@ export default function C_SearchScreen({ navigation }) {
         }
       });
     }
-
+    console.log(users);
     const currentUserFollowedRef = ref(database, `follow/${myUserId}`);
     const currentUserFollowedSnapshot = await get(currentUserFollowedRef);
 
@@ -767,7 +785,13 @@ export default function C_SearchScreen({ navigation }) {
                   return (
                     <View style={styles.row5} key={user.userId}>
                       <View style={styles.row4}>
-                        <TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() =>
+                            navigation.navigate("C_Profile", {
+                              userId: user.userId,
+                            })
+                          }
+                        >
                           {/* Ảnh đại diện người dùng */}
                           <Image
                             style={styles.avatar60}
@@ -775,7 +799,13 @@ export default function C_SearchScreen({ navigation }) {
                           ></Image>
                         </TouchableOpacity>
                         <View>
-                          <TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() =>
+                              navigation.navigate("C_Profile", {
+                                userId: user.userId,
+                              })
+                            }
+                          >
                             {/* Tên người dùng */}
                             <Text style={styles.account_name}>
                               {user.userName}
@@ -1025,6 +1055,7 @@ export default function C_SearchScreen({ navigation }) {
             }}
             onPress={() => {
               setModalVisible(false);
+              stop();
             }}
           >
             <Image
@@ -1156,7 +1187,18 @@ const styles = StyleSheet.create({
   },
   status_image: {
     width: 320,
-    height: 180,
+    aspectRatio: 1 / 1,
+    // height: 180,
+    // resizeMode: "contain",
+    alignSelf: "center",
+    margin: 8,
+    borderRadius: 12,
+    //transform: [{ scale: this.state.scaleValue }],
+  },
+
+  status_video: {
+    width: 300,
+    height: 533,
     // resizeMode: "contain",
     alignSelf: "center",
     margin: 8,

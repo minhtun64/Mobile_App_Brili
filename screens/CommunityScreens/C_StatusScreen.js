@@ -25,6 +25,7 @@ import React, {
   useState,
   useLayoutEffect,
   useRef,
+  useContext,
 } from "react";
 import {
   useNavigation,
@@ -35,7 +36,8 @@ import * as Font from "expo-font";
 import { Icon } from "react-native-elements";
 
 import { useSwipe } from "../../hooks/useSwipe";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
+import { Snackbar } from "react-native-paper";
 
 import * as Sharing from "expo-sharing";
 import * as MediaLibrary from "expo-media-library";
@@ -50,8 +52,11 @@ import {
   ref,
   get,
   onValue,
+  onChildAdded,
+  update,
   remove,
 } from "firebase/database";
+
 import { formatDate } from "../../components/utils";
 import {
   getDownloadURL,
@@ -71,9 +76,11 @@ import CustomFlashMessage from "../../components/CustomFlashMessage";
 
 import EmojiSelector from "react-native-emoji-selector";
 import { Categories } from "react-native-emoji-selector";
+import { UserContext } from "../../UserIdContext";
 
 export default function C_StatusScreen({ navigation }) {
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
+  const [myAvatar, setMyAvatar] = useState(null);
 
   // CÀI ĐẶT FONT CHỮ
   const [fontLoaded, setFontLoaded] = useState(false);
@@ -137,6 +144,12 @@ export default function C_StatusScreen({ navigation }) {
   };
   //    Lắng nghe sự thay đổi của dữ liệu bình luận và lấy thông tin người dùng từ Firebase
   useEffect(() => {
+    const userRef = ref(database, `user/${myUserId}`);
+    onValue(userRef, async (snapshot) => {
+      const userData = snapshot.val();
+      setMyAvatar(userData.avatar);
+    });
+
     const commentsRef = ref(database, "comment");
     onValue(commentsRef, async (snapshot) => {
       const commentsData = snapshot.val();
@@ -255,6 +268,12 @@ export default function C_StatusScreen({ navigation }) {
           likeCount: prevStatusInfo.likeCount + 1,
         }));
       }
+      handleRefresh();
+      if (isLiked) {
+        setIsLiked(false);
+      } else {
+        setIsLiked(true);
+      }
     } catch (error) {
       console.error("Error handling like:", error);
     }
@@ -275,7 +294,7 @@ export default function C_StatusScreen({ navigation }) {
       content: value,
       date: moment().format("DD-MM-YYYY HH:mm:ss"),
       post_id: postId,
-      media: null,
+      media: "",
     };
     if (isSelected) {
       const response = await fetch(image);
@@ -519,6 +538,165 @@ export default function C_StatusScreen({ navigation }) {
     } else {
       navigation.goBack();
     }
+  };
+
+  // Thêm state để lưu trữ thông tin bình luận hiện tại
+  const [modalVisible2, setModalVisible2] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [currentComment, setCurrentComment] = useState(null);
+
+  // Hàm xử lý khi nhấn vào icon Option
+  const handleOptionPress = (comment) => {
+    setCurrentComment(comment);
+    if (comment.media) {
+      setEditImage(comment.media);
+      setIsSelectedEditImage(true);
+    }
+
+    if (comment.content) {
+      setEditContent(comment.content);
+    }
+    setModalVisible2(true);
+  };
+
+  // Hàm xử lý khi nhấn vào nút "Chỉnh sửa bình luận" trong modal
+  const handleEditComment = () => {
+    // Đóng modal chỉnh sửa
+    setModalVisible2(false);
+    // Hiển thị modal nội dung bình luận để chỉnh sửa
+    setEditModalVisible(true);
+  };
+
+  const handleDeleteComment = () => {
+    setModalVisible2(false);
+    setDeleteModalVisible(true);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+  };
+
+  const [showSnackbar2, setShowSnackbar2] = useState(false);
+  const handleConfirmDelete = async () => {
+    // Xóa bình luận khỏi Firebase
+    const commentRef = ref(database, `comment/${currentComment.commentId}`);
+    // const likeRef = ref(database, `like/${currentPost.postId}`);
+    try {
+      await remove(commentRef);
+      // await remove(likeRef);
+
+      // Xóa ảnh từ storage (nếu có)
+      if (currentComment.media) {
+        const storageReference = storageRef(
+          storage,
+          `Comment_Images/${currentComment.commentId}`
+        );
+        // await deleteObject(storageReference);
+      }
+
+      // Đóng modal xóa bình luận
+      setDeleteModalVisible(false);
+      handleRefresh();
+      // Hiển thị snackbar thành công
+      setShowSnackbar2(true);
+      setTimeout(() => setShowSnackbar2(false), 2000); // Hide snackbar after 2 seconds
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  };
+
+  //CHỈNH SỬA BÌNH LUẬN
+  const [showSnackbar1, setShowSnackbar1] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [media, setMedia] = useState("");
+  const handleUpdateComment = async () => {
+    console.log(editImage);
+    if (
+      currentComment.content === editContent &&
+      currentComment.media === editImage
+    ) {
+      // Nếu không có thay đổi nội dung và phương tiện, không thực hiện cập nhật
+      console.log("Không cập nhật");
+      setEditModalVisible(false);
+      return;
+    }
+
+    const updatedCommentRef = ref(
+      database,
+      `comment/${currentComment.commentId}`
+    );
+
+    const { commentId, content, media } = currentComment;
+    const updatedCommentData = { commentId, content: editContent, media };
+    console.log(updatedCommentData);
+    if (currentComment.media != editImage) {
+      if (isSelectedEditImage) {
+        console.log("Đã chọn ảnh");
+        const response = await fetch(editImage);
+        const blob = await response.blob();
+        const storageReference = storageRef(
+          storage,
+          `Comment_Images/${currentComment.commentId}`
+        );
+        try {
+          await uploadBytes(storageReference, blob);
+          const url = await getDownloadURL(storageReference);
+          updatedCommentData.media = url;
+        } catch (error) {
+          console.log("Error uploading image:", error);
+        }
+      } else {
+        const storageReference = storageRef(
+          storage,
+          `Comment_Images/${currentComment.commentId}`
+        );
+        try {
+          await deleteObject(storageReference);
+          updatedCommentData.media = null;
+        } catch (error) {
+          console.log("Error deleting image:", error);
+        }
+      }
+    }
+    try {
+      await update(updatedCommentRef, updatedCommentData);
+      console.log("Bình luận đã được cập nhật thành công");
+      // Tiến hành cập nhật thành công, bạn có thể thực hiện các hành động khác
+      // Hiển thị snackbar thành công
+      setShowSnackbar1(true);
+      setTimeout(() => setShowSnackbar1(false), 2000); // Hide snackbar after 2 seconds
+    } catch (error) {
+      console.log("Lỗi khi cập nhật bình luận:", error);
+      // Xử lý lỗi khi cập nhật bình luận
+    }
+
+    setEditModalVisible(false);
+  };
+
+  // CHỌN/XÓA ẢNH
+  const [editImage, setEditImage] = useState("");
+  const [isSelectedEditImage, setIsSelectedEditImage] = useState(false);
+  const pickEditImage = async () => {
+    const { status } = await requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission denied!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      setIsSelectedEditImage(true);
+      setEditImage(result.assets[0].uri);
+    }
+  };
+  const removeEditImage = () => {
+    setIsSelectedEditImage(false);
+    setEditImage(null);
   };
 
   if (!fontLoaded) {
@@ -823,7 +1001,11 @@ export default function C_StatusScreen({ navigation }) {
               {commentedUsers
                 .slice(-numCommentsDisplayed)
                 .map((commentedUser) => (
-                  <View style={styles.row4} key={commentedUser.commentId}>
+                  <TouchableOpacity
+                    onLongPress={() => handleOptionPress(commentedUser)}
+                    style={styles.row4}
+                    key={commentedUser.commentId}
+                  >
                     <View style={styles.row5}>
                       <TouchableOpacity
                         onPress={() =>
@@ -923,7 +1105,7 @@ export default function C_StatusScreen({ navigation }) {
                         }
                       />
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               {/* PHẦN BÌNH LUẬN*/}
             </View>
@@ -957,10 +1139,7 @@ export default function C_StatusScreen({ navigation }) {
         <View style={styles.row7}>
           <TouchableOpacity>
             {/* Avatar của tôi */}
-            <Image
-              style={styles.avatar40}
-              source={require("../../assets/images/myavatar.png")}
-            ></Image>
+            <Image style={styles.avatar40} source={{ uri: myAvatar }}></Image>
           </TouchableOpacity>
 
           <View
@@ -1040,11 +1219,403 @@ export default function C_StatusScreen({ navigation }) {
         </View>
         {/* MỜI BÌNH LUẬN*/}
       </View>
+
+      {/* Thêm component Modal để hiển thị modal chỉnh sửa và xóa bình luận */}
+      <Modal
+        visible={modalVisible2}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setModalVisible2(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          // onPress={closePetInfo}
+          onPress={() => setModalVisible2(false)}
+        >
+          <View style={styles.modalOptionBackground}>
+            <View style={styles.line2}></View>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handleEditComment}
+            >
+              <View style={styles.row8}>
+                <Image
+                  style={styles.modalOptionIcon}
+                  source={require("../../assets/icons/edit.png")}
+                />
+                <Text style={styles.modalOptionText}>Chỉnh sửa bình luận</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.line}></View>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handleDeleteComment}
+            >
+              <View style={styles.row8}>
+                <Image
+                  style={styles.modalOptionIcon}
+                  source={require("../../assets/icons/delete.png")}
+                />
+                <Text style={styles.modalOptionText}>Xóa bình luận</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Thêm component Modal để hiển thị modal chỉnh sửa */}
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View style={styles.container2}>
+            {/* heading */}
+            <View style={styles.heading2}>
+              <View style={styles.row13}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditModalVisible(false);
+                    setEditContent("");
+                    setEditImage("");
+                    setIsSelectedEditImage(false);
+                  }}
+                >
+                  <Text style={styles.cancel}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.post_button}
+                  onPress={handleUpdateComment}
+                  disabled={editContent === ""}
+                >
+                  <Text style={styles.post}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <TextInput
+                style={styles.status_input}
+                placeholder="Viết bình luận"
+                value={editContent}
+                onChangeText={setEditContent}
+                multiline={true}
+              ></TextInput>
+              {isSelectedEditImage && (
+                <View
+                  style={{
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                    marginTop: 28,
+                  }}
+                >
+                  {editImage && (
+                    <Image
+                      source={{ uri: editImage }}
+                      style={{
+                        width: 250,
+                        height: 250,
+                        borderRadius: 12,
+                      }}
+                    />
+                  )}
+
+                  <TouchableOpacity
+                    onPress={removeEditImage}
+                    style={{ position: "absolute", top: 8, right: 8 }}
+                  >
+                    <AntDesign name="close" size={20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={styles.row2}>
+                <TouchableOpacity onPress={pickEditImage}>
+                  <Image
+                    style={styles.comment_media}
+                    source={require("../../assets/icons/image.png")}
+                  ></Image>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal
+        visible={deleteModalVisible}
+        animationType="fade"
+        transparent={true}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+          // onPress={closePetInfo}
+          onPress={() => setDeleteModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Xác nhận xóa bình luận?</Text>
+
+            <View style={styles.row9}>
+              <TouchableOpacity
+                onPress={handleCancelDelete}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.buttonText1}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmDelete}
+                style={styles.deleteButton}
+              >
+                <Text style={styles.buttonText2}>Xóa</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Snackbar
+        visible={showSnackbar1}
+        // visible={true}
+        onDismiss={() => setShowSnackbar1(false)}
+        duration={2000}
+        // action={{
+        //   label: "Dismiss",
+        //   onPress: () => setShowSnackbar(false),
+        // }}
+        style={{ backgroundColor: "white" }}
+        theme={{ colors: { text: "white" } }}
+      >
+        <View style={styles.row10}>
+          <Ionicons name="md-checkmark-circle" size={28} color="green" />
+          <Text style={styles.snackbarText}>
+            Bình luận đã được cập nhật thành công
+          </Text>
+        </View>
+      </Snackbar>
+      <Snackbar
+        visible={showSnackbar2}
+        onDismiss={() => setShowSnackbar2(false)}
+        duration={2000}
+        style={{ backgroundColor: "white" }}
+        theme={{ colors: { text: "white" } }}
+      >
+        <View style={styles.row10}>
+          <Ionicons name="md-checkmark-circle" size={28} color="green" />
+          <Text style={styles.snackbarText}>
+            Bình luận đã được xóa thành công
+          </Text>
+        </View>
+      </Snackbar>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  status_input: {
+    fontSize: 18,
+    padding: 16,
+    marginTop: 8,
+    fontFamily: "lexend-regular",
+  },
+  post_media: {
+    width: 120,
+    height: 80,
+    marginTop: 80,
+    marginRight: 30,
+    marginLeft: 30,
+  },
+  // label: {
+  //   color: "white",
+  //   fontFamily: "lexend-regular",
+  //   marginTop: 54,
+  //   fontSize: 16,
+  //   marginLeft: "auto",
+  //   marginRight: "auto",
+  // },
+  cancel: {
+    fontSize: 16,
+    fontFamily: "lexend-light",
+  },
+  post: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontFamily: "lexend-medium",
+  },
+  post_button: {
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 16,
+    paddingRight: 16,
+    backgroundColor: "#8F1928",
+    borderRadius: 12,
+    justifyContent: "center", // căn giữa theo chiều dọc
+    alignItems: "center", // căn giữa theo chiều ngang
+  },
+  add: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontFamily: "lexend-medium",
+  },
+  add_button: {
+    height: 40,
+    marginTop: 28,
+    marginBottom: 8,
+    marginLeft: 40,
+    marginRight: 40,
+    backgroundColor: "#8F1928",
+    borderRadius: 12,
+    justifyContent: "center", // căn giữa theo chiều dọc
+    alignItems: "center", // căn giữa theo chiều ngang
+  },
+  row10: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  snackbarText: {
+    fontSize: 16,
+    fontFamily: "lexend-light",
+    color: "green",
+    marginLeft: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 8,
+  },
+  modalText: {
+    fontSize: 18,
+    fontFamily: "lexend-medium",
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  cancelButton: {
+    marginRight: 10,
+    width: 80,
+    height: 40,
+    borderRadius: 4,
+    borderColor: "red",
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButton: {
+    backgroundColor: "red",
+    width: 80,
+    height: 40,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText1: {
+    color: "red",
+    fontSize: 16,
+    fontFamily: "lexend-medium",
+  },
+  buttonText2: {
+    color: "white",
+    fontSize: 16,
+    fontFamily: "lexend-medium",
+  },
+  row9: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingTop: 10,
+    alignItems: "center",
+  },
+  container2: {
+    width: "90%",
+    height: "30%",
+    marginLeft: "auto",
+    marginRight: "auto",
+    marginTop: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+  },
+  container1: {
+    width: "100%",
+    height: "90%",
+    marginTop: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+  },
+  heading2: {
+    width: "100%",
+    height: "18%",
+    borderRadius: 12,
+    backgroundColor: "#FFF6F6",
+  },
+  account_name2: {
+    fontSize: 16,
+    color: "#8F1928",
+    fontFamily: "lexend-semibold",
+  },
+  row8: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    paddingTop: 10,
+    // paddingBottom: 10,
+    // alignItems: "center",
+  },
+  line2: {
+    width: 54,
+    height: 5,
+    backgroundColor: "#F5817E",
+    marginLeft: "auto",
+    marginRight: "auto",
+    borderRadius: "50%",
+  },
+  modalOptionIcon: {
+    width: 24,
+    height: 24,
+    marginLeft: 40,
+    marginRight: 20,
+  },
+  modalOptionText: {
+    color: "#A51A29",
+    fontFamily: "lexend-medium",
+    fontSize: 18,
+  },
+  modalOptionBackground: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    height: "16%",
+    justifyContent: "space-around",
+    // alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#FCAC9E",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 32,
+  },
   container: {
     width: "100%",
     height: "90%",
@@ -1070,7 +1641,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-
+  row13: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingLeft: 16,
+    paddingRight: 16,
+    position: "absolute",
+    bottom: "10%",
+    // backgroundColor: "white",
+  },
   row2: {
     flexDirection: "row",
     justifyContent: "flex-start",

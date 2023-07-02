@@ -19,6 +19,7 @@ import React, {
   useState,
   useLayoutEffect,
   useRef,
+  useContext,
 } from "react";
 import {
   useNavigation,
@@ -32,11 +33,12 @@ import { useSwipe } from "../../hooks/useSwipe";
 import { database } from "../../firebase";
 import { onValue, ref, get, set, push, remove } from "firebase/database";
 import moment from "moment";
+import { UserContext } from "../../UserIdContext";
 
 export default function C_FollowingListScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
 
   const route = useRoute();
   const [followingUsers, setFollowingUsers] = useState(
@@ -73,61 +75,63 @@ export default function C_FollowingListScreen({ navigation }) {
     loadFont();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Sắp xếp lại danh sách followingUsers
-      const sortedFollowingUsers = followingUsers.sort((a, b) => {
-        if (a.userId.toString() === myUserId) {
-          return -1; // Đưa tài khoản của bạn lên đầu danh sách
-        } else if (b.userId.toString() === myUserId) {
-          return 1; // Đưa tài khoản của bạn lên đầu danh sách
-        } else {
-          return 0; // Giữ nguyên vị trí của các người dùng khác
-        }
-      });
+  const fetchData = async () => {
+    // Sắp xếp lại danh sách followingUsers
+    const sortedFollowingUsers = followingUsers.sort((a, b) => {
+      if (a.userId.toString() === myUserId) {
+        return -1; // Đưa tài khoản của bạn lên đầu danh sách
+      } else if (b.userId.toString() === myUserId) {
+        return 1; // Đưa tài khoản của bạn lên đầu danh sách
+      } else {
+        return 0; // Giữ nguyên vị trí của các người dùng khác
+      }
+    });
 
-      const getFollowingUsersInfo = async (followingUsers) => {
-        const usersInfo = await Promise.all(
-          followingUsers.map(async (user) => {
-            const userId = user.userId.toString();
-            const userRef = ref(database, `user/${userId}`);
-            const userSnapshot = await get(userRef);
-            const userData = userSnapshot.val();
-            const followRef = ref(database, `follow/${myUserId}/${userId}`);
-            const followSnapshot = await get(followRef);
-            const isFollowing = !!followSnapshot.exists();
-            return {
-              userId: userId,
-              userName: userData.name,
-              userAvatar: userData.avatar,
-              userIntro: userData.intro,
-              isFollowing: isFollowing,
-            };
-          })
-        );
-        return usersInfo;
-      };
-
-      const followingUsersInfo = await getFollowingUsersInfo(
-        sortedFollowingUsers
+    const getFollowingUsersInfo = async (followingUsers) => {
+      const usersInfo = await Promise.all(
+        followingUsers.map(async (user) => {
+          const userId = user.userId.toString();
+          const userRef = ref(database, `user/${userId}`);
+          const userSnapshot = await get(userRef);
+          const userData = userSnapshot.val();
+          const followRef = ref(database, `follow/${myUserId}/${userId}`);
+          const followSnapshot = await get(followRef);
+          const isFollowing = !!followSnapshot.exists();
+          return {
+            userId: userId,
+            userName: userData.name,
+            userAvatar: userData.avatar,
+            userIntro: userData.intro,
+            isFollowing: isFollowing,
+          };
+        })
       );
-      const updatedFollowingUsers = sortedFollowingUsers.map((user) => {
-        const userId = user.userId.toString();
-        const userInfo = followingUsersInfo.find(
-          (info) => info.userId === userId
-        );
-        return {
-          userId: userId,
-          userName: userInfo.userName,
-          userAvatar: userInfo.userAvatar,
-          userIntro: userInfo.userIntro,
-          isFollowing: userInfo.isFollowing,
-        };
-      });
-      setFollowingUsers(updatedFollowingUsers);
+      return usersInfo;
     };
+
+    const followingUsersInfo = await getFollowingUsersInfo(
+      sortedFollowingUsers
+    );
+    const updatedFollowingUsers = sortedFollowingUsers.map((user) => {
+      const userId = user.userId.toString();
+      const userInfo = followingUsersInfo.find(
+        (info) => info.userId === userId
+      );
+      return {
+        userId: userId,
+        userName: userInfo.userName,
+        userAvatar: userInfo.userAvatar,
+        userIntro: userInfo.userIntro,
+        isFollowing: userInfo.isFollowing,
+      };
+    });
+    setFollowingUsers(updatedFollowingUsers);
+  };
+  fetchData();
+
+  useEffect(() => {
     fetchData();
-  }, [followingUsers]);
+  }, []);
 
   // XỬ LÝ CÁC THAO TÁC QUẸT MÀN HÌNH
   const panResponder = useSwipe(

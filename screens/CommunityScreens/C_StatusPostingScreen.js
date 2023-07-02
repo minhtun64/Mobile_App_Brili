@@ -19,6 +19,7 @@ import React, {
   useState,
   useLayoutEffect,
   useRef,
+  useContext,
 } from "react";
 import { Audio, Video, ResizeMode } from "expo-av";
 import { useNavigation, useScrollToTop } from "@react-navigation/native";
@@ -46,9 +47,10 @@ import {
   uploadBytes,
   ref as storageRef,
 } from "firebase/storage";
+import { UserContext } from "../../UserIdContext";
 
 export default function C_StatusPostingScreen({ navigation }) {
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
 
   const [fontLoaded, setFontLoaded] = useState(false);
   const [avatar, setAvatar] = useState("");
@@ -106,8 +108,8 @@ export default function C_StatusPostingScreen({ navigation }) {
     const newPostData = {
       user_id: myUserId,
       content: value,
-      media: null,
-      mediaType: null,
+      media: "",
+      mediaType: "",
       date: moment().format("DD-MM-YYYY HH:mm:ss"),
     };
     if (isSelected) {
