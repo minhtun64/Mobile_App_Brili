@@ -37,7 +37,9 @@ import V_BookingSuccessScreen from "../screens/VeterinarianScreens/V_BookingSucc
 import V_ListAppointmentScreen from "../screens/VeterinarianScreens/V_ListAppointmentScreen";
 import V_OriginScreen from "../screens/VeterinarianScreens/V_OriginScreen";
 
-import M_ListScreen from "../screens/MessageScreens/M_ListScreen";
+import M_ChatListScreen from "../screens/MessageScreens/M_ChatListScreen";
+import M_ChatItemScreen from "../screens/MessageScreens/M_ChatItemScreen";
+
 import N_ListScreen from "../screens/NotificationScreens/N_ListScreen";
 
 import S_OptionScreen from "../screens/SettingScreens/S_OptionScreen";
@@ -115,11 +117,12 @@ function VeterinarianStackNavigator() {
 
 const MessageStack = createStackNavigator();
 function MessageStackNavigator() {
-    return (
-        <MessageStack.Navigator screenOptions={{ headerShown: false }}>
-            <MessageStack.Screen name="M_List" component={M_ListScreen} />
-        </MessageStack.Navigator>
-    );
+  return (
+    <MessageStack.Navigator screenOptions={{ headerShown: false }}>
+      <MessageStack.Screen name="M_List" component={M_ChatListScreen} />
+      <MessageStack.Screen name="M_Chat" component={M_ChatItemScreen} />
+    </MessageStack.Navigator>
+  );
 }
 
 const NotificationStack = createStackNavigator();

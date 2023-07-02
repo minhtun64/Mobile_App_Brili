@@ -31,7 +31,7 @@ export default function V_BookingSuccessScreen({ navigation }) {
         </TouchableOpacity>
         <View style={[styles.headerTitle, styles.row]}>
           <Text style={styles.headerText}>Đặt lịch hẹn</Text>
-          <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image>
+          {/* <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image> */}
         </View>
       </View>
 
@@ -54,18 +54,15 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    marginTop: '2%',
+    marginTop: '10%',
   },
   backBtn: {
-    position: 'absolute',
-    left: 8,
     resizeMode: 'contain',
-    marginTop: 32,
-    marginLeft: 12,
+    padding: 16,
+    marginHorizontal: '3%',
   },
   title: {
     backgroundColor: '#FFF6F6',
-    paddingVertical: 12,
   },
   titleImg: {
     width: 28,
@@ -84,20 +81,42 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   headerTitle: {
+    flex: 1,
     width: '100%',
     justifyContent: 'center',
+    marginRight: '12%',
     marginTop: 8,
   },
   headerText: {
     color: '#A51A29',
-    fontSize: 16,
-    verticalAlign: 'middle',
+    fontSize: 18,
+    alignSelf: 'center',
     fontFamily: 'lexend-bold',
+    paddingBottom: 8,
   },
   headerImg: {
     width: '6%',
     marginLeft: 6,
     resizeMode: 'contain',
+    justifyContent: 'flex-start',
+  },
+  container: {
+    width: '94%',
+    height: '100%',
+    alignSelf: 'center',
+    marginTop: '10%',
+  },
+  headingModal: {
+    fontSize: 18,
+    fontFamily: 'lexend-medium',
+    marginBottom: '4%',
+    paddingLeft: '4%',
+  },
+  titleSelect: {
+    fontSize: 14,
+    fontFamily: 'lexend-medium',
+    marginBottom: '1%',
+    marginTop: '3%',
   },
 
   // body
