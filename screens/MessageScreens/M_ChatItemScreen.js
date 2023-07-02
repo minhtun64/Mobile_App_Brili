@@ -9,15 +9,16 @@ import {
   Button
 } from "react-native";
 import { Fontisto } from '@expo/vector-icons';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import { database } from "../../firebase";
 import { ref, query, onValue, push } from "firebase/database";
+import { UserContext } from "../../UserIdContext";
 import Sender from "../../components/sender";
 import Receiver from "../../components/receiver";
 
 export default function M_ChatListScreen({ navigation, route }) {
   const { propId, propName, propAvatar } = route.params;
-  const myUserId = 3; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');

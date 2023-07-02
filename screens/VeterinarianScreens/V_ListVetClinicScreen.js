@@ -10,13 +10,12 @@ import {
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { database } from "../../firebase";
-import {ref, get} from "firebase/database";
+import { ref, get } from "firebase/database";
 
 export default function V_ListVetClinicScreen({ navigation, route }) {
   const { provinceName, districtName, wardName } = route.params;
 
-  const [clinicData, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [clinicData, setData] = useState([]);
 
   useEffect(() => {
     // Truy van du lieu tu Firebase Realtime Database
@@ -25,6 +24,7 @@ export default function V_ListVetClinicScreen({ navigation, route }) {
 
   const fetchDataFromFirebase = async () => {
     const clinicRef = ref(database, 'clinic');
+
     const clinicSnapshot = await get(clinicRef);
     const data = clinicSnapshot.val();
 
@@ -62,13 +62,7 @@ export default function V_ListVetClinicScreen({ navigation, route }) {
     } else {
       setData(data);
     }
-
-    setLoading(false);
   };
-
-  if (loading) {
-    return <Text style={{marginTop: '12%', marginLeft: '4%'}}>Loading...</Text>;
-  }
 
   return (
     <View style={styles.wrapping}>
@@ -81,7 +75,7 @@ export default function V_ListVetClinicScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={[styles.headerTitle, styles.row]}>
           <Text style={styles.headerText}>Đặt lịch hẹn</Text>
-          <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image>
+          {/* <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image> */}
         </View>
       </View>
       <View style={[styles.title, styles.row]}>
@@ -89,7 +83,7 @@ export default function V_ListVetClinicScreen({ navigation, route }) {
         <Text style={styles.titleText}>Các phòng khám ở gần bạn</Text>
       </View>
       <ScrollView style={styles.listClinicCard}>
-        {clinicData.map(item => <ClinicCard key={item.id} {...item} navigation={navigation} />)}
+        {clinicData && clinicData.map(item => <ClinicCard key={item.id} {...item} navigation={navigation} />)}
       </ScrollView>
     </View>
   );
@@ -120,6 +114,7 @@ const ClinicCard = (prop) => {
         */}
       <View style={styles.clinicInfo}>
         <Text style={styles.name}>{prop.name}</Text>
+        <Text style={styles.agency}>Cơ sở {prop.version}</Text>
         <View style={[styles.address, styles.row]}>
           <Image style={styles.addressIcon} source={require('../../assets/icons/V_clinic-location.png')}></Image>
           <Text style={styles.addressText}>{prop.address}</Text>
@@ -140,9 +135,10 @@ const ClinicCard = (prop) => {
             onPress={() => {
               const clinicId = prop.id;
               const clinicName = prop.name;
+              const clinicAgency = prop.version;
               const clinicAddress = prop.address;
               const clinicAvatar = prop.avatar;
-              prop.navigation.navigate("V_BookingVet", {clinicId, clinicName, clinicAddress, clinicAvatar})
+              prop.navigation.navigate("V_BookingVet", { clinicId, clinicName, clinicAgency, clinicAddress, clinicAvatar })
             }}
           >
             <Text style={styles.textBookingBtn}>Đặt lịch khám</Text>
@@ -163,18 +159,15 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    marginTop: '2%',
+    marginTop: '10%',
   },
   backBtn: {
-    position: 'absolute',
-    left: 8,
     resizeMode: 'contain',
-    marginTop: 32,
-    marginLeft: 12,
+    padding: 16,
+    marginHorizontal: '3%',
   },
   title: {
     backgroundColor: '#FFF6F6',
-    paddingVertical: 12,
   },
   titleImg: {
     width: 28,
@@ -193,20 +186,24 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   headerTitle: {
+    flex: 1,
     width: '100%',
     justifyContent: 'center',
+    marginRight: '12%',
     marginTop: 8,
   },
   headerText: {
     color: '#A51A29',
-    fontSize: 16,
-    verticalAlign: 'middle',
+    fontSize: 18,
+    alignSelf: 'center',
     fontFamily: 'lexend-bold',
+    paddingBottom: 8,
   },
   headerImg: {
     width: '6%',
     marginLeft: 6,
     resizeMode: 'contain',
+    justifyContent: 'flex-start',
   },
   listClinicCard: {
     marginTop: 8,
@@ -231,6 +228,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
   },
+  clinicInfo: {
+    width: '88%',
+    marginLeft: '1%',
+  },
   clinicImg: {
     width: 68,
     height: 68,
@@ -241,6 +242,12 @@ const styles = StyleSheet.create({
   name: {
     color: '#39A3C0',
     fontSize: 16,
+    fontFamily: 'lexend-regular',
+    marginBottom: 4,
+  },
+  agency: {
+    color: '#39A3C0',
+    fontSize: 15,
     fontFamily: 'lexend-regular',
     marginBottom: 4,
   },
@@ -287,9 +294,10 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 4,
     marginRight: 8,
+    marginLeft: '6%',
   },
   bookingBtn: {
-    width: '68%',
+    width: '56%',
     justifyContent: 'center',
     backgroundColor: '#A51A29',
     borderColor: '#E02D33',

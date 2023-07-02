@@ -8,21 +8,21 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import CalendarStrip from 'react-native-calendar-strip';
 import { database } from "../../firebase";
 import { ref, get, push, update } from "firebase/database";
+import { UserContext } from "../../UserIdContext";
 
 export default function V_BookingVetScreen({ navigation, route }) {
-  const { clinicId, clinicName, clinicAddress, clinicAvatar } = route.params;
-  const myUserID = 3;
+  const { clinicId, clinicName, clinicAgency, clinicAddress, clinicAvatar } = route.params;
+  const myUserId = useContext(UserContext).userId;
 
-  const [timeId, setTimeId] = useState();
-  const [petId, setPetId] = useState();
+  const [timeId, setTimeId] = useState(null);
+  const [petId, setPetId] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [timeList, setTimeList] = useState([]);
   const [petList, setPetList] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const handleDateSelected = (date) => {
     const selectedDate = new Date(date);
@@ -51,12 +51,14 @@ export default function V_BookingVetScreen({ navigation, route }) {
           id: item.id,
           startTime: item.start_time,
           endTime: item.end_time,
+          disabled: item.booked == item.slot,
         })
       }
+
     })
     setTimeList(timeData);
 
-    const petRef = ref(database, `pet/${myUserID}`);
+    const petRef = ref(database, `pet/${myUserId}`);
     const petSnapshot = await get(petRef);
     const petData = petSnapshot.val();
     var petArr = [];
@@ -70,13 +72,11 @@ export default function V_BookingVetScreen({ navigation, route }) {
       });
     });
     setPetList(petArr);
-
-    setLoading(false);
   }
 
   const appointmentRef = ref(database, `/appointment/${clinicId}/${timeId}`);
 
-  const submitBooking = () => {
+  const submitBooking = async () => {
     const currentDate = new Date();
     const day = currentDate.getDate().toString().padStart(2, '0');
     const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
@@ -97,34 +97,28 @@ export default function V_BookingVetScreen({ navigation, route }) {
       booking_date: formattedTimestamp,
     };
 
+    const apmtScheduleRef = ref(database, `appointment_schedule/${clinicId}/${timeId}`);
+    const apmtScheduleSnapshot = await get(apmtScheduleRef);
+    const apmtScheduleData = apmtScheduleSnapshot.val();
+
+    let bookedSlot = apmtScheduleData.booked;
+
     push(appointmentRef, newRecord)
-      .then(async () => {
-        console.log('New record added successfully!');
-
-        const apmtScheduleRef = ref(database, `appointment_schedule/${clinicId}/${timeId}`);
-        const apmtScheduleSnapshot = await get(apmtScheduleRef);
-        const apmtScheduleData = apmtScheduleSnapshot.val();
-
-        var bookedSlot = apmtScheduleData.booked;
-        var slotAvai = apmtScheduleData.slot;
-
+      .then(() => {
+        console.log('New appointment added successfully!');
         const newScheduleUpdate = {
           booked: bookedSlot + 1,
-          slot: slotAvai - 1,
-        }
+        };
 
         if (update(apmtScheduleRef, newScheduleUpdate)) {
-          alert("Đặt lịch thành công")  // ------------------------------ update
+          console.log('booked+1 & slot-1');
         }
       })
       .catch((error) => {
         console.log('Error adding new record:', error);
       });
-  }
+  };
 
-  if (loading) {
-    return <Text style={{ marginTop: '12%', marginLeft: '4%' }}>Loading...</Text>;
-  }
 
   return (
     <View style={styles.wrapping}>
@@ -137,7 +131,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
         </TouchableOpacity>
         <View style={[styles.headerTitle, styles.row]}>
           <Text style={styles.headerText}>Đặt lịch hẹn</Text>
-          <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image>
+          {/* <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image> */}
         </View>
       </View>
 
@@ -151,6 +145,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
           </View>
           <View style={styles.clinicInfo}>
             <Text style={styles.name}>{clinicName}</Text>
+            <Text style={styles.agency}>Cơ sở {clinicAgency}</Text>
             <View style={[styles.address, styles.row]}>
               <Image style={styles.iconAddress} source={require('../../assets/icons/V_clinic-location.png')}></Image>
               <Text style={styles.textAddress}>{clinicAddress}</Text>
@@ -177,7 +172,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
         {/* pickup time */}
         <Text style={[styles.subTitle, styles.marginLeft6]}>Thời gian</Text>
         <ScrollView horizontal={true} style={styles.listTimeOptions}>
-          {timeList.map(item => {
+          {timeList && timeList.map(item => {
             const bgrColor = item.id === timeId ? '#b0dbe2' : '#f9bebf';
             const color = item.id === timeId ? '#4d5f62' : '#ffffff';
 
@@ -188,6 +183,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
                 onPress={() => setTimeId(item.id)}
                 backgroundColor={bgrColor}
                 textColor={color}
+                disabled={item.disabled}   //disabled TimeCard khi het lich kham nay het slot 
               />);
           }
           )}
@@ -195,7 +191,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
         {/* pickup pet */}
         <Text style={[styles.subTitle, styles.marginLeft6]}>Thú cưng</Text>
         <ScrollView horizontal={true} style={styles.listPetOptions}>
-          {petList.map(item => {
+          {petList && petList.map(item => {
             const bgrColor = item.id === petId ? '#b0dbe2' : '#f9bebf';
             const color = item.id === petId ? '#4d5f62' : '#ffffff';
 
@@ -229,12 +225,16 @@ export default function V_BookingVetScreen({ navigation, route }) {
 }
 
 const TimeCard = (prop) => {
+  const backgroundColor = prop.disabled ? '#ccc' : prop.backgroundColor;
+  const textColor = prop.disabled ? '#ffffff' : prop.textColor;
+
   return (
     <TouchableOpacity
-      style={[styles.timeCard, { backgroundColor: prop.backgroundColor }]}
+      style={[styles.timeCard, { backgroundColor }]}
       onPress={prop.onPress}
+      disabled={prop.disabled}
     >
-      <Text style={[styles.hours, { color: prop.textColor }]}>{prop.startTime + ' - ' + prop.endTime}</Text>
+      <Text style={[styles.hours, { color: textColor }]}>{prop.startTime + ' - ' + prop.endTime}</Text>
     </TouchableOpacity>
   )
 }
@@ -261,18 +261,15 @@ const styles = StyleSheet.create({
   },
   header: {
     width: '100%',
-    marginTop: '2%',
+    marginTop: '10%',
   },
   backBtn: {
-    position: 'absolute',
-    left: 8,
     resizeMode: 'contain',
-    marginTop: 32,
-    marginLeft: 12,
+    padding: 16,
+    marginHorizontal: '3%',
   },
   title: {
     backgroundColor: '#FFF6F6',
-    paddingVertical: 12,
   },
   titleImg: {
     width: 28,
@@ -291,20 +288,24 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   headerTitle: {
+    flex: 1,
     width: '100%',
     justifyContent: 'center',
+    marginRight: '12%',
     marginTop: 8,
   },
   headerText: {
     color: '#A51A29',
-    fontSize: 16,
-    verticalAlign: 'middle',
+    fontSize: 18,
+    alignSelf: 'center',
     fontFamily: 'lexend-bold',
+    paddingBottom: 8,
   },
   headerImg: {
     width: '6%',
     marginLeft: 6,
     resizeMode: 'contain',
+    justifyContent: 'flex-start',
   },
 
   // body
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
   clinicInfo: {
     width: '76%',
     height: 100,
-    paddingVertical: '3%',
+    paddingVertical: '1%',
     paddingHorizontal: '1%',
     marginLeft: -6,
     backgroundColor: '#FFFFFF',
@@ -353,12 +354,17 @@ const styles = StyleSheet.create({
   },
   name: {
     color: '#39A3C0',
-    fontSize: 20,
+    fontSize: 19,
     fontFamily: 'lexend-regular',
   },
+  agency: {
+    color: '#39A3C0',
+    fontSize: 16,
+    fontFamily: 'lexend-light',
+  },
   address: {
-    width: '92%',
-    marginTop: '4%',
+    width: '94%',
+    marginTop: '2%',
   },
   iconAddress: {
     width: 18,
