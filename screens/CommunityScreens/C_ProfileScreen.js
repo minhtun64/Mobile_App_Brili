@@ -654,6 +654,13 @@ export default function C_ProfileScreen({ navigation }) {
   };
 
   //CHỈNH SỬA TRANG CÁ NHÂN
+  const handleEditProfilePress = () => {
+    setEditProfileModalVisible(true);
+    setEditName(name);
+    setEditIntro(intro);
+    setEditAvatar(avatar);
+    setEditWallpaper(wallpaper);
+  };
   const [showSnackbar3, setShowSnackbar3] = useState(false);
   const [editName, setEditName] = useState(null);
   const [editIntro, setEditIntro] = useState(null);

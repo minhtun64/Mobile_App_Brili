@@ -38,9 +38,6 @@ import { onValue, ref, get, set, push, remove } from "firebase/database";
 import { database } from "../../firebase";
 import { onValue, ref, get, set, push, remove } from "firebase/database";
 
-import { database } from "../../firebase";
-import { onValue, ref, get, set, push, remove } from "firebase/database";
-
 export default function C_FollowedListScreen({ navigation }) {
   const [fontLoaded, setFontLoaded] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);

@@ -217,6 +217,7 @@ export default function C_SearchScreen({ navigation }) {
   }, [searchQuery]);
 
   const handleSearchSubmit = () => {
+    console.log("tìm");
     if (searchQuery != "") {
       setHasSubmittedQuery(true);
       searchPosts();
