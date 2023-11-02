@@ -26,6 +26,7 @@ import React, {
   useLayoutEffect,
   useRef,
   useCallback,
+  useContext,
 } from "react";
 import {
   useNavigation,
@@ -36,7 +37,7 @@ import {
 import * as Font from "expo-font";
 
 import { useSwipe } from "../../hooks/useSwipe";
-
+import { saveNotification, saveNotificationFollow } from "../../components/utils";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { Snackbar } from "react-native-paper";
 
@@ -67,9 +68,10 @@ import { Audio, Video, ResizeMode } from "expo-av";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoPicker from "expo-image-picker";
 import { requestMediaLibraryPermissionsAsync } from "expo-image-picker";
+import { UserContext } from "../../UserIdContext";
 
 export default function C_ProfileScreen({ navigation }) {
-  const myUserId = "10"; // VÍ DỤ
+  const myUserId = useContext(UserContext).userId;
   const [myProfile, setMyProfile] = useState(false);
 
   // LẤY THAM SỐ ĐƯỢC TRUYỀN TỪ MÀN HÌNH TRƯỚC
@@ -220,7 +222,6 @@ export default function C_ProfileScreen({ navigation }) {
 
     // Load pets
     const petRef = ref(database, `pet/${userId}`);
-
     onValue(petRef, (snapshot) => {
       const pets = [];
       snapshot.forEach((childSnapshot) => {
@@ -400,7 +401,10 @@ export default function C_ProfileScreen({ navigation }) {
       const followData = {
         date: moment().format("DD-MM-YYYY HH:mm:ss"),
       };
-      set(ref(database, `follow/${myUserId}/${userId}`), followData);
+      if(set(ref(database, `follow/${myUserId}/${userId}`), followData)){
+        
+        saveNotificationFollow(myUserId,'follow', userId)
+      }
       setIsFollowing(true);
     }
   };
@@ -508,14 +512,6 @@ export default function C_ProfileScreen({ navigation }) {
   };
 
   //CHỈNH SỬA BÀI VIẾT
-  const handleEditProfilePress = () => {
-    setEditProfileModalVisible(true);
-    setEditName(name);
-    setEditIntro(intro);
-    setEditAvatar(avatar);
-    setEditWallpaper(wallpaper);
-  };
-
   const [showSnackbar1, setShowSnackbar1] = useState(false);
   const [value, setValue] = useState("");
   const [media, setMedia] = useState("");
@@ -549,6 +545,7 @@ export default function C_ProfileScreen({ navigation }) {
           console.log("Error uploading image:", error);
         }
       } else {
+        console.log("Xóa ảnh");
         const storageReference = storageRef(
           storage,
           `Status_Images/${currentPost.postId}`
@@ -665,7 +662,7 @@ export default function C_ProfileScreen({ navigation }) {
       name === editName &&
       intro === editIntro &&
       avatar === editAvatar &&
-      wallpaper === editWapper
+      wallpaper === editWallpaper
     ) {
       console.log("Không cập nhật");
       setEditProfileModalVisible(false);
@@ -892,6 +889,7 @@ export default function C_ProfileScreen({ navigation }) {
         currentMaxId = Math.max(...petIds);
       }
       const newPetId = currentMaxId + 1;
+      console.log(newPetId);
 
       const newPetRef = ref(database, `pet/${myUserId}/${newPetId}`);
       const newPetData = {
@@ -911,7 +909,7 @@ export default function C_ProfileScreen({ navigation }) {
         const blob = await response.blob();
         const storageReference = storageRef(
           storage,
-          `Pet_Images/${myUserId}/${newPedId}`
+          `Pet_Images/${myUserId}/${newPetId}`
         );
         try {
           await uploadBytes(storageReference, blob);
@@ -1060,7 +1058,7 @@ export default function C_ProfileScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-        {pets.length > 0 && (
+        {(pets.length > 0 || myProfile) && (
           <View style={styles.pet_frame}>
             <ScrollView
               horizontal={true}
@@ -1078,87 +1076,87 @@ export default function C_ProfileScreen({ navigation }) {
                     <Ionicons name="add" size={24} color="#F5817E" />
                   </TouchableOpacity>
                 )}
-                {pets.map((pet, index) => (
-                  <View key={index}>
-                    <TouchableOpacity
-                      style={{
-                        marginRight: 8,
-                        marginLeft: 8,
-                      }}
-                      onPress={() => openPetInfo(index)}
-                    >
-                      {pet.avatar ? (
-                        <Image
-                          style={styles.pet_img}
-                          source={{ uri: pet.avatar }}
-                        ></Image>
-                      ) : (
-                        <Image
-                          style={styles.pet_img}
-                          source={require("../../assets/images/avatar_pet.png")}
-                        ></Image>
-                      )}
-
-                      <View
-                        style={StyleSheet.flatten([
-                          styles.row3,
-                          {
-                            alignSelf: "center",
-                            backgroundColor: "#ffffff",
-                            paddingTop: 4,
-                            marginTop: 8,
-                            padding: 4,
-                            borderRadius: 12,
-                          },
-                        ])}
+                {pets.length > 0 &&
+                  pets.map((pet, index) => (
+                    <View key={index}>
+                      <TouchableOpacity
+                        style={{
+                          marginRight: 8,
+                          marginLeft: 8,
+                        }}
+                        onPress={() => openPetInfo(index)}
                       >
-                        {pet.type === 1 && (
+                        {pet.avatar ? (
                           <Image
-                            style={StyleSheet.flatten([
-                              styles.chat,
-                              {
-                                marginRight: 4,
-                              },
-                            ])}
-                            source={require("../../assets/images/icon-hamster.png")}
+                            style={styles.pet_img}
+                            source={{ uri: pet.avatar }}
+                          ></Image>
+                        ) : (
+                          <Image
+                            style={styles.pet_img}
+                            source={require("../../assets/images/avatar_pet.png")}
                           ></Image>
                         )}
-                        {pet.type === 2 && (
-                          <Image
-                            style={StyleSheet.flatten([
-                              styles.chat,
-                              {
-                                marginRight: 4,
-                              },
-                            ])}
-                            source={require("../../assets/images/icon-cat.png")}
-                          ></Image>
-                        )}
-                        {pet.type === 3 && (
-                          <Image
-                            style={StyleSheet.flatten([
-                              styles.chat,
-                              {
-                                marginRight: 4,
-                              },
-                            ])}
-                            source={require("../../assets/images/icon-dog.png")}
-                          ></Image>
-                        )}
-                        <Text
-                          style={{
-                            fontFamily: "lexend-regular",
-                          }}
+
+                        <View
+                          style={StyleSheet.flatten([
+                            styles.row3,
+                            {
+                              alignSelf: "center",
+                              backgroundColor: "#ffffff",
+                              paddingTop: 4,
+                              marginTop: 8,
+                              padding: 4,
+                              borderRadius: 12,
+                            },
+                          ])}
                         >
-                          {pet.name}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                          {pet.type === 1 && (
+                            <Image
+                              style={StyleSheet.flatten([
+                                styles.chat,
+                                {
+                                  marginRight: 4,
+                                },
+                              ])}
+                              source={require("../../assets/images/icon-hamster.png")}
+                            ></Image>
+                          )}
+                          {pet.type === 2 && (
+                            <Image
+                              style={StyleSheet.flatten([
+                                styles.chat,
+                                {
+                                  marginRight: 4,
+                                },
+                              ])}
+                              source={require("../../assets/images/icon-cat.png")}
+                            ></Image>
+                          )}
+                          {pet.type === 3 && (
+                            <Image
+                              style={StyleSheet.flatten([
+                                styles.chat,
+                                {
+                                  marginRight: 4,
+                                },
+                              ])}
+                              source={require("../../assets/images/icon-dog.png")}
+                            ></Image>
+                          )}
+                          <Text
+                            style={{
+                              fontFamily: "lexend-regular",
+                            }}
+                          >
+                            {pet.name}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
               </View>
             </ScrollView>
-
             {pet && (
               <Modal
                 // animationType="slide"
@@ -1303,7 +1301,6 @@ export default function C_ProfileScreen({ navigation }) {
             )}
           </View>
         )}
-
         {/* DANH SÁCH BÀI ĐĂNG */}
         <View style={styles.newsfeed}>
           <View style={styles.row5}>
@@ -1361,13 +1358,25 @@ export default function C_ProfileScreen({ navigation }) {
                       </Text>
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => handleOptionPress(post)}>
-                    {/* Tùy chọn Status */}
-                    <Image
-                      style={styles.status_option}
-                      source={require("../../assets/icons/option.png")}
-                    ></Image>
-                  </TouchableOpacity>
+                  {myProfile ? (
+                    <TouchableOpacity onPress={() => handleOptionPress(post)}>
+                      {/* Tùy chọn Status */}
+                      <Image
+                        style={styles.status_option}
+                        source={require("../../assets/icons/option.png")}
+                      ></Image>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                    // onPress={() => handleOptionPress(post)}
+                    >
+                      {/* Tùy chọn Status */}
+                      <Image
+                        style={styles.status_option}
+                        source={require("../../assets/icons/option.png")}
+                      ></Image>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {/* Nội dung Status */}
                 <Text style={styles.status_content} selectable={true}>
@@ -1518,13 +1527,21 @@ export default function C_ProfileScreen({ navigation }) {
             alignItems: "center",
           }}
           // onPress={closePetInfo}
-          onPress={() => setEditModalVisible(false)}
+          // onPress={() => setEditModalVisible(false)}
         >
           <View style={styles.container2}>
             {/* heading */}
             <View style={styles.heading2}>
               <View style={styles.row}>
-                <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <TouchableOpacity
+                  onPress={() => setEditModalVisible(false)}
+                  onPress={() => {
+                    setEditModalVisible(false);
+                    setValue("");
+                    setImage("");
+                    setIsSelected(false);
+                  }}
+                >
                   <Text style={styles.cancel}>Hủy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1750,7 +1767,7 @@ export default function C_ProfileScreen({ navigation }) {
                   height: 142,
                 }}
               >
-                {wallpaper && (
+                {isSelectedWallpaper && (
                   <Image
                     source={{ uri: editWallpaper }}
                     style={{
