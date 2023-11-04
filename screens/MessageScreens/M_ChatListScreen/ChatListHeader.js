@@ -8,32 +8,29 @@ import {
 } from "react-native";
 import React, { useState, useEffect, useContext } from "react";
 import { database } from "../../../firebase";
-import { onValue, ref } from "firebase/database";
+import { ref, onValue, off } from "firebase/database";
 import { UserContext } from "../../../UserIdContext";
 
 export default function ChatListHeader() {
   const myUserId = useContext(UserContext).userId;
-  const [myUserAvatar, setMyUserAvatar] = useState({});
+  const [myUserAvatar, setMyUserAvatar] = useState(null);
 
   useEffect(() => {
-    const userRef = ref(database, `user/${myUserId}`);
+    let userRef = ref(database, `user/${myUserId}`);
 
     onValue(userRef, (snapshot) => {
-      const data = snapshot.val();
-      setMyUserAvatar({
-        link: data.avatar,
-      });
+      let data = snapshot.val();
+      setMyUserAvatar(data.avatar);
     });
-  }, []);
+
+    return () => off(onValue);
+  }, [myUserId]);
 
   return (
     <View style={[styles.heading]}>
       <View style={[styles.titleRow, styles.row]}>
         <View style={styles.userAvatarContainer}>
-          <Image
-            style={styles.userAvatar}
-            source={{ uri: myUserAvatar.link }}
-          />
+          <Image style={styles.userAvatar} source={{ uri: myUserAvatar }} />
         </View>
         <View style={styles.title}>
           <Text style={styles.titleText}>Tin nhắn</Text>
