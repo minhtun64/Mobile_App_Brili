@@ -8,13 +8,14 @@ import {
   TextInput,
   KeyboardAvoidingView
 } from "react-native";
-// import { Fontisto } from '@expo/vector-icons';
+import { Fontisto } from '@expo/vector-icons';
 import React, { useEffect, useState, useRef, useContext } from "react";
-// import { database } from "../../firebase";
-// import { ref, query, onValue, push, orderByChild, equalTo } from "firebase/database";
+import { database } from "../../../firebase";
+import { ref, query, onValue, push, orderByChild, equalTo } from "firebase/database";
 import { UserContext } from "../../../UserIdContext";
-// import Sender from "../../components/sender";
-// import Receiver from "../../components/receiver";
+import ChatItemHeader from "./ChatItemHeader";
+import Sender from "../../../components/sender";
+import Receiver from "../../../components/receiver";
 
 export default function M_ChatItemScreen({ route }) {
   const { id, userId, userName, userAvatar } = route.params;
@@ -97,63 +98,53 @@ export default function M_ChatItemScreen({ route }) {
   //   setInputFocused(false);
   // };
 
-  // return (
-  //   <KeyboardAvoidingView
-  //     behavior={Platform.OS === "ios" ? "padding" : "height"}
-  //     style={styles.container}
-  //     enabled
-  //     keyboardVerticalOffset={Platform.select({ ios: 0, android: 500 })}
-  //   >
-  //     <View style={[styles.header, styles.row]}>
-  //       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-  //         <Image
-  //           style={styles.backIcon}
-  //           source={require("../../assets/icons/V_backIconMain.png")}
-  //         ></Image>
-  //       </TouchableOpacity>
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+      enabled
+      keyboardVerticalOffset={Platform.select({ ios: 0, android: 500 })}
+    >
 
-  //       <Image style={styles.userImg} source={{ uri: userAvatar }}></Image>
-  //       <Text style={styles.userName}>{userName}</Text>
-  //     </View>
+      <ChatItemHeader data={ {userName, userAvatar} }/>
+      {/* <View style={{ flex: 1, paddingTop: 12, paddingBottom: 14 }}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            item.sender_id == myUserId
+              ? <Sender message={[item.content, item.timestamp, userAvatar]} />
+              : <Receiver message={[item.content, item.timestamp, userAvatar]} />
+          )}
+          getItemLayout={getItemLayout}
+        />
+      </View>
 
-  //     <View style={{ flex: 1, paddingTop: 12, paddingBottom: 14 }}>
-  //       <FlatList
-  //         ref={flatListRef}
-  //         data={messages}
-  //         keyExtractor={item => item.id}
-  //         renderItem={({ item }) => (
-  //           item.sender_id == myUserId
-  //             ? <Sender message={[item.content, item.timestamp, userAvatar]} />
-  //             : <Receiver message={[item.content, item.timestamp, userAvatar]} />
-  //         )}
-  //         getItemLayout={getItemLayout}
-  //       />
-  //     </View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={{ height: 36, paddingLeft: 16, borderColor: '#ccc', borderWidth: 1, borderRadius: 20, flex: 5 }}
+          onChangeText={text => setText(text)}
+          value={text}
+          placeholder="Nhắn tin"
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+        >
+        </TextInput>
+        <TouchableOpacity
+          style={isInputFocused ? styles.btnMessageSend : styles.btnMessageUnSend}
+          onPress={sendText}
+        >
+          <Fontisto
+            name="paper-plane"
+            size={18}
+            color={isInputFocused ? "white" : "#A51A29"}
+          />
+        </TouchableOpacity>
 
-  //     <View style={styles.inputContainer}>
-  //       <TextInput
-  //         style={{ height: 36, paddingLeft: 16, borderColor: '#ccc', borderWidth: 1, borderRadius: 20, flex: 5 }}
-  //         onChangeText={text => setText(text)}
-  //         value={text}
-  //         placeholder="Nhắn tin"
-  //         onFocus={handleInputFocus}
-  //         onBlur={handleInputBlur}
-  //       >
-  //       </TextInput>
-  //       <TouchableOpacity
-  //         style={isInputFocused ? styles.btnMessageSend : styles.btnMessageUnSend}
-  //         onPress={sendText}
-  //       >
-  //         <Fontisto
-  //           name="paper-plane"
-  //           size={18}
-  //           color={isInputFocused ? "white" : "#A51A29"}
-  //         />
-  //       </TouchableOpacity>
-
-  //     </View>
-  //   </KeyboardAvoidingView>
-  // );
+      </View> */}
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -164,31 +155,6 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-  },
-  header: {
-    width: '100%',
-    paddingTop: '10%',
-    paddingBottom: '2%',
-    alignItems: 'center',
-    borderWidth: 0.5,
-    borderColor: '#f9bebf'
-  },
-  backBtn: {
-    resizeMode: 'contain',
-    padding: 16,
-    marginHorizontal: '2%',
-  },
-  userImg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: '3%',
-  },
-  userName: {
-    fontSize: 16,
-    fontFamily: 'lexend-medium',
-    color: '#A51A29',
-    textAlign: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -215,4 +181,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 10,
   }
-})
+});
