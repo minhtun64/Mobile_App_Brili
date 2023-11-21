@@ -120,7 +120,7 @@ function MessageStackNavigator() {
   return (
     <MessageStack.Navigator screenOptions={{ headerShown: false }}>
       <MessageStack.Screen name="M_List" component={M_ChatListScreen} />
-      <MessageStack.Screen name="M_Chat" component={M_ChatItemScreen} />
+      <MessageStack.Screen name="M_ChatItem" component={M_ChatItemScreen} />
     </MessageStack.Navigator>
   );
 }

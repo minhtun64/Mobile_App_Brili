@@ -332,7 +332,6 @@ export default function C_HomeScreen({ navigation }) {
                           style={styles.status_video}
                           source={{ uri: post.media }}
                           ref={video}
-                          resizeMode="cover"
                           // shouldPlay={true}
                           shouldPlay={false}
                           isLooping={true}

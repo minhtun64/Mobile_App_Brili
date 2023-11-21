@@ -59,8 +59,8 @@ const styles = StyleSheet.create({
   heading: {
     width: "100%",
     borderBottomWidth: 1,
-    borderBottomColor: "#ffe5f2",
-    backgroundColor: "#FFECF5",
+    borderBottomColor: 'rgba(252, 172, 158, 0.5)',
+    backgroundColor: "#FDDAD4",
     paddingHorizontal: 16,
   },
   row: {
@@ -71,9 +71,9 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   userAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   titleRow: {
     flexDirection: "row",
@@ -92,14 +92,14 @@ const styles = StyleSheet.create({
   },
   titleText: {
     marginLeft: 10,
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "lexend-medium",
     color: "#A51A29",
     marginTop: 16,
   },
   titleIcon: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     marginTop: 8,
   },
   searchBtn: {
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#ffffff",
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 20,
+    paddingVertical: 3,
+    marginTop: 22,
     marginBottom: 16,
   },
   searchIcon: {
@@ -116,9 +116,11 @@ const styles = StyleSheet.create({
     height: 26,
   },
   searchTextInput: {
-    fontSize: 15,
+    width: "100%",
+    fontSize: 14,
+    fontFamily: "lexend-light",
     lineHeight: 1.5,
-    color: "#ccc",
+    color: "#7C7C7C",
     marginLeft: 8,
   },
 });
