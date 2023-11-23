@@ -7,9 +7,22 @@ import {
   Image,
   TextInput,
 } from "react-native";
+import { UserContext } from "../../../UserIdContext";
+import searchUsers from "../../../firebase_functions/searchUsers";
 
 function M_SearchUserScreen({ navigation }) {
+  const myUserId = useContext(UserContext).userId;
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchedUsers, setSearchedUsers] = useState([]);
+
+  const handleInputSubmit = async (textInput) => {
+    try {
+      let usersData = await searchUsers(myUserId, textInput);
+      setSearchedUsers(usersData);
+    } catch (error) {
+      console.error("Error searching users:", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -29,11 +42,11 @@ function M_SearchUserScreen({ navigation }) {
             style={styles.searchInput}
             placeholder="Tìm kiếm"
             placeholderTextColor="#8C8C8C"
-            // autoCapitalize="none"
             returnKeyType="search"
             value={searchQuery}
             onChangeText={(text) => {
               setSearchQuery(text);
+              handleInputSubmit(text);
             }}
             autoFocus={true}
           ></TextInput>
