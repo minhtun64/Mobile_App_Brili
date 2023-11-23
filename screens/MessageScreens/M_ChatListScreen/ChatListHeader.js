@@ -7,11 +7,13 @@ import {
   TextInput,
 } from "react-native";
 import React, { useState, useEffect, useContext } from "react";
+import { useNavigation } from "@react-navigation/native";
 import { database } from "../../../firebase";
 import { ref, onValue, off } from "firebase/database";
 import { UserContext } from "../../../UserIdContext";
 
 export default function ChatListHeader() {
+  const navigation = useNavigation();
   const myUserId = useContext(UserContext).userId;
   const [myUserAvatar, setMyUserAvatar] = useState(null);
 
@@ -41,7 +43,12 @@ export default function ChatListHeader() {
         </View>
       </View>
 
-      <TouchableOpacity style={[styles.searchBtn, styles.row]}>
+      <TouchableOpacity
+        style={[styles.searchBtn, styles.row]}
+        onPress={() => {
+          navigation.navigate("M_SearchUser");
+        }}
+      >
         <Image
           style={styles.searchIcon}
           source={require("../../../assets/icons/search.png")}
@@ -49,6 +56,7 @@ export default function ChatListHeader() {
         <TextInput
           style={styles.searchTextInput}
           placeholder="Tìm kiếm"
+          editable={false}
         ></TextInput>
       </TouchableOpacity>
     </View>
@@ -59,7 +67,7 @@ const styles = StyleSheet.create({
   heading: {
     width: "100%",
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(252, 172, 158, 0.5)',
+    borderBottomColor: "rgba(252, 172, 158, 0.5)",
     backgroundColor: "#FDDAD4",
     paddingHorizontal: 16,
   },
