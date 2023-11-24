@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from "react";
-import { StyleSheet, Text, View, FlatList } from "react-native";
+import { StyleSheet, Text, View, FlatList, Image } from "react-native";
 import { database } from "../../../firebase";
 import { ref, get } from "firebase/database";
 
 import { UserContext } from "../../../UserIdContext";
 import ChatListHeader from "./ChatListHeader";
 import CardItem from "./CardItem";
+import LoadingView from "../LoadingView";
 
 function M_ChatListScreen({ navigation }) {
   let myUserId = useContext(UserContext).userId;
@@ -24,21 +25,26 @@ function M_ChatListScreen({ navigation }) {
       let chatListRef = ref(database, `chatList`);
       const snapshot = await get(chatListRef);
       snapshot.forEach((childSnapshot) => {
-        const nodeValue = childSnapshot.val();
-        if (Object.values(nodeValue.participants).includes(myUserId)) {
-          if (myUserId !== nodeValue.participants.user1) {
-            itemList.push({
-              id: childSnapshot.key,
-              ...nodeValue.messages.pop(),
-            });
-            userIdList.push(nodeValue.participants.user1);
-          } else {
-            itemList.push({
-              id: childSnapshot.key,
-              ...nodeValue.messages.pop(),
-            });
-            userIdList.push(nodeValue.participants.user2);
-          }
+        let nodeValue = childSnapshot.val();
+        let participants = nodeValue.participants;
+        let messages = Object.values(nodeValue.messages);
+
+        if (Object.values(participants).includes(myUserId)) {
+          let otherUserId =
+            myUserId !== participants.user1
+              ? participants.user1
+              : participants.user2;
+
+          // Lay tin nhan moi nhat cuoi cung
+          let lastMessageKey = Object.keys(messages).pop();
+          let lastMessage = messages[lastMessageKey];
+
+          itemList.push({
+            idChatBox: childSnapshot.key,
+            ...lastMessage,
+          });
+
+          userIdList.push(otherUserId);
         }
       });
 
@@ -63,9 +69,8 @@ function M_ChatListScreen({ navigation }) {
   };
 
   if (loading) {
-    return (
-      <Text style={{ marginTop: "12%", marginLeft: "4%" }}>Loading...</Text>
-    );
+    // Show the loading screen
+    return <LoadingView />;
   }
 
   return (
@@ -73,7 +78,7 @@ function M_ChatListScreen({ navigation }) {
       <ChatListHeader />
       <FlatList
         data={messages}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.idChatBox}
         renderItem={({ item }) => (
           <CardItem navigation={navigation} data={item} />
         )}
@@ -95,6 +100,17 @@ const styles = StyleSheet.create({
   content: {
     width: "100%",
     backgroundColor: "#ffffff",
+  },
+  loadingView: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FBDCE2",
+  },
+  loadingImg: {
+    width: "100%",
+    aspectRatio: 1,
   },
 });
 

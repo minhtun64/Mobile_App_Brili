@@ -11,7 +11,7 @@ function CardItem({ navigation, data }) {
       style={styles.chatCard}
       onPress={() =>
         navigation.navigate("M_ChatItem", {
-          id: messages.id,
+          idChatBox: messages.idChatBox,
           userId: messages.userId,
           userName: messages.name,
           userAvatar: messages.avatar,

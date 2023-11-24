@@ -6,9 +6,10 @@ import { UserContext } from "../../../UserIdContext";
 import ChatItemHeader from "./ChatItemHeader";
 import Sender from "../../../components/sender";
 import Receiver from "../../../components/receiver";
+import TextInputBox from "./TextInputBox";
 
 export default function M_ChatItemScreen({ navigation, route }) {
-  const { id, userId, userName, userAvatar } = route.params;
+  const { idChatBox, userId, userName, userAvatar } = route.params;
   const myUserId = useContext(UserContext).userId;
   const flatListRef = useRef(null);
   const [messages, setMessages] = useState([]);
@@ -18,10 +19,16 @@ export default function M_ChatItemScreen({ navigation, route }) {
     navigation.getParent().setOptions({ tabBarStyle: { display: "none" } });
 
     // Get data of chatbox from firebase
-    let chatListRef = ref(database, `chatList/${id}`);
+    let chatListRef = ref(database, `chatList/${idChatBox}/messages`);
     onValue(chatListRef, (snapshot) => {
-      const messageData = snapshot.val().messages;
-      setMessages(Object.values(messageData));
+      let messageList = [];
+      snapshot.forEach((childSnapshot) => {
+        messageList.push({
+          idMessage: childSnapshot.key,
+          ...childSnapshot.val(),
+        })
+      });
+      setMessages(messageList);
     });
   }, []);
 
@@ -41,15 +48,13 @@ export default function M_ChatItemScreen({ navigation, route }) {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
-      enabled
-      keyboardVerticalOffset={Platform.select({ ios: 0, android: 500 })}
     >
       <ChatItemHeader data={{ userName, userAvatar }} />
       <View style={{ flex: 1, paddingTop: 12, paddingBottom: 14 }}>
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.idMessage}
           renderItem={({ item }) =>
             item.sender === myUserId ? (
               <Sender message={[item.content, item.timestamp, userAvatar]} />
@@ -60,6 +65,7 @@ export default function M_ChatItemScreen({ navigation, route }) {
           getItemLayout={getItemLayout}
         />
       </View>
+      <TextInputBox idChatBox={idChatBox} />
     </KeyboardAvoidingView>
   );
 }
