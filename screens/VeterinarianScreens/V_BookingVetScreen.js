@@ -15,7 +15,7 @@ import { ref, get, push, update } from "firebase/database";
 import { UserContext } from "../../UserIdContext";
 
 export default function V_BookingVetScreen({ navigation, route }) {
-  const { clinicId, clinicName, clinicAgency, clinicAddress, clinicAvatar } =route.params;
+  const { clinicId, clinicName, clinicAgency, clinicAddress, clinicAvatar } = route.params;
   const myUserId = useContext(UserContext).userId;
 
   const [timeId, setTimeId] = useState(null);
@@ -239,7 +239,13 @@ export default function V_BookingVetScreen({ navigation, route }) {
       {/* schedule button */}
       <View style={styles.btnContainer}>
         <TouchableOpacity
-          style={styles.btnBackground}
+          style={[
+            styles.btnBackground,
+            {
+              backgroundColor:
+                petId != null && timeId != null ? "#A51A29" : "#DFDFDF",
+            },
+          ]}
           onPress={() => {
             if (petId != null && timeId != null) {
               submitBooking();
@@ -247,7 +253,16 @@ export default function V_BookingVetScreen({ navigation, route }) {
             }
           }}
         >
-          <Text style={styles.btnText}>xác nhận đặt lịch</Text>
+          <Text
+            style={[
+              styles.btnText,
+              {
+                color: petId != null && timeId != null ? "#FFFFFF" : "#8C8C8C",
+              },
+            ]}
+          >
+            xác nhận đặt lịch
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -515,7 +530,6 @@ const styles = StyleSheet.create({
     width: "72%",
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#A51A29",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
@@ -523,7 +537,6 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 14.5,
     fontFamily: "lexend-medium",
-    color: "#FFFFFF",
     textTransform: "uppercase",
   },
 });

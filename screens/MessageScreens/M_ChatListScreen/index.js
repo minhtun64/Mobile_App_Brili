@@ -6,7 +6,7 @@ import { ref, get } from "firebase/database";
 import { UserContext } from "../../../UserIdContext";
 import ChatListHeader from "./ChatListHeader";
 import CardItem from "./CardItem";
-import LoadingView from "../LoadingView";
+import LoadingView from "../../../components/LoadingView";
 
 function M_ChatListScreen({ navigation }) {
   let myUserId = useContext(UserContext).userId;

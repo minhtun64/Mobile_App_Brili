@@ -4,7 +4,7 @@ function LoadingView() {
   return (
     <View style={styles.loadingView}>
       <Image
-        source={require("../../assets/images/loading.png")}
+        source={require("../assets/images/loading.png")}
         style={styles.loadingImg}
       />
     </View>
