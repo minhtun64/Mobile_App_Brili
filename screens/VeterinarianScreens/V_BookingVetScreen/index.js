@@ -1,6 +1,5 @@
 import {
   TouchableOpacity,
-  Button,
   Text,
   StyleSheet,
   View,
@@ -10,66 +9,58 @@ import {
 } from "react-native";
 import React, { useEffect, useState, useContext } from "react";
 import CalendarStrip from "react-native-calendar-strip";
-import { database } from "../../firebase";
+import { database } from "../../../firebase";
 import { ref, get, push, update } from "firebase/database";
-import { UserContext } from "../../UserIdContext";
+import { UserContext } from "../../../UserIdContext";
+import moment from "moment";
+import TimeCard from "./TimeCard";
+import PetCard from "./PetCard";
 
 export default function V_BookingVetScreen({ navigation, route }) {
-  const { clinicId, clinicName, clinicAgency, clinicAddress, clinicAvatar } = route.params;
+  const { clinicId, clinicName, clinicAgency, clinicAddress, clinicAvatar } =
+    route.params;
   const myUserId = useContext(UserContext).userId;
 
-  const [timeId, setTimeId] = useState(null);
-  const [petId, setPetId] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [timeList, setTimeList] = useState([]);
   const [petList, setPetList] = useState([]);
-
-  const handleDateSelected = (date) => {
-    const selectedDate = new Date(date);
-    setSelectedDate(selectedDate);
-  };
+  const [timeId, setTimeId] = useState(null);
+  const [petId, setPetId] = useState(null);
 
   useEffect(() => {
-    // Truy van du lieu tu Firebase Realtime Database
+    // lay danh sach gio kham
     fetchDataFromFirebase();
   }, [selectedDate]);
 
+  // load data thoi gian kham va list thu cung cua user
   const fetchDataFromFirebase = async () => {
-    const appoinmtRef = ref(database, `appointment_schedule/${clinicId}`);
-    const appoinmtSnapshot = await get(appoinmtRef);
-    const data = appoinmtSnapshot.val();
-
-    var timeData = [];
-
-    currentDate = `${selectedDate.getDate()}-${
-      selectedDate.getMonth() + 1
-    }-${selectedDate.getFullYear()}`;
-    const parsedDateCurrent = new Date(currentDate);
-
-    data.forEach((item) => {
-      const parsedDateItem = new Date(item.date);
-      if (
-        item !== undefined &&
-        parsedDateCurrent.getTime() === parsedDateItem.getTime()
-      ) {
-        timeData.push({
-          id: item.id,
-          startTime: item.start_time,
-          endTime: item.end_time,
-          slot: item.slot,
-          booked: item.booked,
-        });
-      }
+    // get time list according to date
+    let currentDate = moment(selectedDate).format("DD-MM-YYYY");
+    let scheduleRef = ref(
+      database,
+      `clinicSchedule/${clinicId}/${currentDate}`
+    );
+    let timeData = [];
+    let scheduleSnapshot = await get(scheduleRef);
+    scheduleSnapshot.forEach((childSnapshot) => {
+      let scheduleNode = childSnapshot.val();
+      timeData.push({
+        id: childSnapshot.key,
+        startTime: scheduleNode.startTime,
+        endTime: scheduleNode.endTime,
+        slot: scheduleNode.slot,
+        booked: scheduleNode.booked,
+      });
     });
     setTimeList(timeData);
 
-    const petRef = ref(database, `pet/${myUserId}`);
-    const petSnapshot = await get(petRef);
-    const petData = petSnapshot.val();
-    var petArr = [];
-
+    // get pet list of user
+    let petRef = ref(database, `pet/${myUserId}`);
+    let petSnapshot = await get(petRef);
+    let petData = petSnapshot.val();
+    let petArr = [];
     Object.keys(petData).forEach((key) => {
-      const item = petData[key];
+      let item = petData[key];
       petArr.push({
         id: key, // Lay key cua nut du lieu lam ID
         name: item.name,
@@ -79,54 +70,54 @@ export default function V_BookingVetScreen({ navigation, route }) {
     setPetList(petArr);
   };
 
-  const appointmentRef = ref(database, `/appointment/${clinicId}/${timeId}`);
-
+  // them lich hen vao database
   const submitBooking = async () => {
-    const currentDate = new Date();
-    const day = currentDate.getDate().toString().padStart(2, "0");
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
-    const year = currentDate.getFullYear().toString();
-    const hours = currentDate.getHours().toString().padStart(2, "0");
-    const minutes = currentDate.getMinutes().toString().padStart(2, "0");
-    const seconds = currentDate.getSeconds().toString().padStart(2, "0");
-
-    const formattedTimestamp = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
-
-    const newRecord = {
-      id: Math.floor(Math.random() * 1000000) + 1,
-      appointment_schedule_id: timeId,
-      clinic_id: clinicId,
-      pet_id: petId,
+    let newRecord = {
+      clinicName: clinicName,
+      clinicAddress: clinicAddress,
+      clinicAgency: clinicAgency,
+      petName: petList.find((element) => element.id === petId).name,
+      petAvatar: petList.find((element) => element.id === petId).avatar,
+      createdDate: moment().format("DD-MM-YYYY HH:mm:ss"),
+      scheduleDate: moment(selectedDate).format("DD-MM-YYYY"),
+      startTime: timeList.find((element) => element.id === timeId).startTime,
+      endTime: timeList.find((element) => element.id === timeId).endTime,
+      status: "Đã đặt",
       description: "",
-      status: 1,
-      booking_date: formattedTimestamp,
     };
 
-    const apmtScheduleRef = ref(
-      database,
-      `appointment_schedule/${clinicId}/${timeId}`
-    );
-    const apmtScheduleSnapshot = await get(apmtScheduleRef);
-    const apmtScheduleData = apmtScheduleSnapshot.val();
-
-    let bookedSlot = apmtScheduleData.booked;
-
+    let currentDate = moment(selectedDate).format("DD-MM-YYYY");
+    let appointmentRef = ref(database, `appointment/${clinicId}/${myUserId}`);
     push(appointmentRef, newRecord)
       .then(() => {
         console.log("New appointment added successfully!");
-        const newScheduleUpdate = {
-          booked: bookedSlot + 1,
-        };
-
-        if (update(apmtScheduleRef, newScheduleUpdate)) {
-          console.log("booked+1 & slot-1");
-        }
+        let scheduleRef = ref(
+          database,
+          `clinicSchedule/${clinicId}/${currentDate}/${timeId}`
+        );
+        get(scheduleRef)
+        .then (scheduleSnapshot => {
+          bookedSlot = scheduleSnapshot.val().booked;
+          let bookedUpdate = {
+            booked: parseInt(bookedSlot, 10) + 1,
+          };
+          if (update(scheduleRef, bookedUpdate)) {
+            console.log("booked+1");
+          }
+        });
       })
       .catch((error) => {
         console.log("Error adding new record:", error);
       });
   };
 
+  // cap nhat khi nguoi dung thay doi ngay tren lich
+  const handleDateSelected = (date) => {
+    const selectedDate = new Date(date);
+    setSelectedDate(selectedDate);
+  };
+
+  // render giao dien nguoi dung
   return (
     <View style={styles.wrapping}>
       <View style={[styles.header, styles.row]}>
@@ -136,12 +127,11 @@ export default function V_BookingVetScreen({ navigation, route }) {
         >
           <Image
             style={styles.backIcon}
-            source={require("../../assets/icons/V_backIconMain.png")}
+            source={require("../../../assets/icons/V_backIconMain.png")}
           ></Image>
         </TouchableOpacity>
         <View style={[styles.headerTitle, styles.row]}>
           <Text style={styles.headerText}>Đặt lịch hẹn</Text>
-          {/* <Image style={styles.headerImg} source={require('../../assets/icons/V_bookingVetHeader.png')}></Image> */}
         </View>
       </View>
 
@@ -161,7 +151,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
             <View style={[styles.address, styles.row]}>
               <Image
                 style={styles.iconAddress}
-                source={require("../../assets/icons/V_clinic-location.png")}
+                source={require("../../../assets/icons/V_clinic-location.png")}
               ></Image>
               <Text style={styles.textAddress}>{clinicAddress}</Text>
             </View>
@@ -266,60 +256,6 @@ export default function V_BookingVetScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
-}
-
-const TimeCard = (prop) => {
-  let enabledCard = prop.booked !== prop.slot;
-  let backgroundColor = enabledCard ? prop.backgroundColor : "#DFDFDF";
-  let textColor = enabledCard ? prop.textColor : "#FFFFFF";
-
-  return (
-    <View>
-      <TouchableOpacity
-        style={[styles.timeCard, { backgroundColor }]}
-        onPress={prop.onPress}
-        disabled={!enabledCard}
-      >
-        <Text style={[styles.hours, { color: textColor }]}>
-          {prop.startTime + " - " + prop.endTime}
-        </Text>
-      </TouchableOpacity>
-      {enabledCard && (
-        <View style={[styles.labelBooking, styles.row]}>
-          <View style={styles.row}>
-            <Text style={styles.textSlotBooking}>Trống: </Text>
-            <Text style={[styles.textSlotBooking, styles.slotBooking]}>
-              {prop.slot - prop.booked}
-            </Text>
-          </View>
-          <View style={styles.imgSlotBooking}>
-            <Image
-              source={require("../../assets/icons/slot-booking.png")}
-              style={styles.img}
-            />
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
-
-const PetCard = (prop) => {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.petCard,
-        styles.row,
-        { backgroundColor: prop.backgroundColor },
-      ]}
-      onPress={prop.onPress}
-    >
-      <Image style={styles.petImg} source={{ uri: prop.avatar }}></Image>
-      <Text style={[styles.petName, { color: prop.textColor }]}>
-        {prop.name}
-      </Text>
-    </TouchableOpacity>
   );
 };
 
@@ -462,63 +398,9 @@ const styles = StyleSheet.create({
     marginTop: "4%",
     marginBottom: "2%",
   },
-  timeCard: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: "#f9bebf",
-    borderRadius: 20,
-    marginRight: 16,
-  },
-  hours: {
-    color: "#FFFFFF",
-    fontSize: 14,
-  },
-  labelBooking: {
-    marginRight: "6%",
-    alignSelf: "center",
-  },
-  textSlotBooking: {
-    fontSize: 12,
-    fontFamily: "lexend-light",
-  },
-  slotBooking: {
-    fontFamily: "lexend-regular",
-  },
-  imgSlotBooking: {
-    paddingLeft: "2%",
-    paddingRight: "3%",
-  },
-  img: {
-    width: 20,
-    height: 20,
-  },
   //pet pickup
   listPetOptions: {
     width: "88%",
-  },
-  petCard: {
-    justifyContent: "space-between",
-    backgroundColor: "#ddf7ec",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginBottom: "4%",
-    marginRight: 16,
-  },
-  petImg: {
-    width: 44,
-    height: 44,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    resizeMode: "contain",
-  },
-  petName: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontFamily: "lexend-regular",
-    alignSelf: "center",
-    paddingHorizontal: 8,
   },
   // schedule button
   btnContainer: {
