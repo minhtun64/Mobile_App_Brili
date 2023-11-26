@@ -1,6 +1,5 @@
 import {
   TouchableOpacity,
-  Button,
   Text,
   StyleSheet,
   View,
@@ -10,55 +9,21 @@ import {
   Modal,
   Alert,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { database } from "../../firebase";
+import { ref, get, onValue } from "firebase/database";
+import { UserContext } from "../../UserIdContext";
+import moment from "moment";
+import LoadingView from "../../components/LoadingView";
+import V_OriginScreen from "./V_OriginScreen";
 
 export default function V_ListAppointmentScreen({ navigation }) {
+  const myUserId = useContext(UserContext).userId;
+  const [appointmentList, setAppointmentList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [dataModal, setDataModal] = useState({});
-
-  const appointmentArr = [
-    {
-      id: 1,
-      avatar: '',
-      name: 'Phòng khám Mon - Cơ sở 2',
-      address: '178 Trần Hưng Đạo, Phường Đa Kao, Quận 1, Thành phố Hồ Chí Minh',
-      createDate: '27/06/2023',
-      date: '28/06/2023',
-      startTime: '10:30',
-      endTime: '12:00',
-      status: 'Đã đặt',
-      petName: 'Nâu',
-      description: 'Anti loài mèo',
-    },
-    {
-      id: 2,
-      avatar: '',
-      name: 'Phòng khám Pet Hospital - Cơ sở 3',
-      address: '53 Thạch Thị Thanh, Phường Đa Kao, Quận 1, Thành phố Hồ Chí Minh',
-      createDate: '15/05/2023',
-      date: '18/05/2023',
-      startTime: '17:00',
-      endTime: '18:30',
-      status: 'Đã xong',
-      petName: 'Xám',
-      description: 'Ăn tròn lăn quay',
-    },
-    {
-      id: 3,
-      avatar: '',
-      name: 'Phòng Khám Thú Y Belwee - Cơ sở 1',
-      address: '160 Xô Viết Nghệ Tĩnh, Phường 24, Quận Bình Thạnh, Thành phố Hồ Chí Minh',
-      createDate: '05/12/2022',
-      date: '11/12/2022',
-      startTime: '10:30',
-      endTime: '12:00',
-      status: 'Đã hủy',
-      petName: 'Mâu Ghẻ',
-      description: 'Cắn phá rụng răng',
-    },
-  ];
-
   const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const [loading, setLoading] = useState(true);
 
   const onLayout = (event) => {
     const { width, height } = event.nativeEvent.layout;
@@ -68,66 +33,100 @@ export default function V_ListAppointmentScreen({ navigation }) {
   const { width, height } = layout;
   const calHeight = width / 2.32;
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const appointmentRef = ref(database, `appointment/${myUserId}`);
+        onValue(appointmentRef, (snapshot) => {
+          let appointmentData = [];
+          snapshot.forEach((childSnapshot) => {
+            appointmentData.push({
+              id: childSnapshot.key,
+              ...childSnapshot.val(),
+              createdDate: moment(
+                childSnapshot.val().createdDate,
+                "DD-MM-YYYY hh:mm:ss"
+              ).format("DD-MM-YYYY"),
+            });
+          });
+          setAppointmentList(appointmentData);
+          setLoading(false);
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [myUserId]);
+
+  if (loading) {
+    // Show the loading screen
+    return <LoadingView />;
+  }
+
   return (
     <View style={styles.container}>
       {/* banner */}
       <Image
-          style={{
-            width: '90%',
-            height: calHeight,
-            resizeMode: 'contain',
-            marginRight: 'auto',
-            marginLeft: 'auto',
-            marginTop: 48,
-            marginBottom: 12,
-            borderRadius: 12,
-          }}
-          source={require('../../assets/images/V_banner.png')}
-          onLayout={onLayout} />
+        style={{
+          width: "90%",
+          height: calHeight,
+          resizeMode: "contain",
+          marginRight: "auto",
+          marginLeft: "auto",
+          marginTop: 48,
+          marginBottom: 12,
+          borderRadius: 12,
+        }}
+        source={require("../../assets/images/V_banner.png")}
+        onLayout={onLayout}
+      />
+      <View style={styles.seperation}></View>
 
-        <View style={styles.seperation}></View>
+      {appointmentList.length > 0 ? (
+        <View style={styles.body}>
+          {/* header */}
+          <View style={styles.heading}>
+            <Text style={styles.title}>Danh sách lịch hẹn</Text>
+          </View>
 
-      {/* appointment list */}
-      <View style={styles.body}>
-        {/* header */}
-        <View style={styles.heading}>
-          <Text style={styles.title}>Danh sách lịch hẹn</Text>
+          {/* danh sách các lịch hẹn */}
+          <ScrollView style={styles.listAppointment}>
+            {appointmentList.map((item) => {
+              let bgrColor = "";
+              if (item.status === "Đã đặt") bgrColor = "#F5817E";
+              else if (item.status === "Đã xong") bgrColor = "#AFEF8E";
+              else bgrColor = "#DCDCDC";
+
+              return (
+                <AppointmentCard
+                  key={item.id}
+                  {...item}
+                  backgroundColor={bgrColor}
+                  onPress={() => {
+                    setModalVisible(true);
+                    setDataModal(item);
+                  }}
+                />
+              );
+            })}
+          </ScrollView>
         </View>
+      ) : (
+        <V_OriginScreen />
+      )}
 
-        {/* danh sách các lịch hẹn */}
-        <ScrollView style={styles.listAppointment}>
-          {appointmentArr.map(item => {
-            let bgrColor = '';
-            if (item.status === 'Đã đặt')
-              bgrColor = '#F5817E';
-            else if (item.status === 'Đã xong')
-              bgrColor = '#AFEF8E';
-            else
-              bgrColor = '#DCDCDC';
-
-            return (
-              <AppointmentCard
-                key={item.id}
-                {...item}
-                backgroundColor={bgrColor}
-                onPress={() => {
-                  setModalVisible(true);
-                  setDataModal(item);
-                }}
-              />
-            );
-          })}
-        </ScrollView>
-
-        {/* nút thêm lịch hẹn mới */}
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => navigation.navigate("V_Location")}>
-          <Image style={styles.imgBtn} source={require('../../assets/icons/V_footprint.png')}></Image>
-        </TouchableOpacity>
-      </View>
-
-
+      {/* nút thêm lịch hẹn mới */}
+      <TouchableOpacity
+        style={styles.addBtn}
+        onPress={() => navigation.navigate("V_Location")}
+      >
+        <Image
+          style={styles.imgBtn}
+          source={require("../../assets/icons/V_footprint.png")}
+        ></Image>
+      </TouchableOpacity>
 
       {/* ========================================================================================================= */}
       {/* Modal contains information of appointment */}
@@ -135,24 +134,35 @@ export default function V_ListAppointmentScreen({ navigation }) {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => { setModalVisible(false) }}
+        onRequestClose={() => {
+          setModalVisible(false);
+        }}
       >
         <View style={styles.modal}>
           <View style={styles.modalContent}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Image style={styles.closeModal} source={require('../../assets/icons/V_closeModal.png')} />
+              <Image
+                style={styles.closeModal}
+                source={require("../../assets/icons/V_closeModal.png")}
+              />
             </TouchableOpacity>
             <Text style={styles.headingModal}>Thông tin lịch hẹn</Text>
 
             <View style={[styles.clinic, styles.row]}>
               <View style={styles.clinicImgView}>
-                <Image style={styles.clinicImgModal} source={require('../../assets/images/V_clinicAvatar2.png')}></Image>
+                <Image
+                  style={styles.clinicImgModal}
+                  source={require("../../assets/images/V_clinicAvatar2.png")}
+                ></Image>
               </View>
               <View style={styles.clinicInfo}>
                 <Text style={styles.name}>{dataModal.name}</Text>
                 {/* <Text style={styles.branch}>Cơ sở 1</Text> */}
                 <View style={[styles.address, styles.row]}>
-                  <Image style={styles.iconAddress} source={require('../../assets/icons/V_clinic-location.png')}></Image>
+                  <Image
+                    style={styles.iconAddress}
+                    source={require("../../assets/icons/V_clinic-location.png")}
+                  ></Image>
                   <Text style={styles.textAddress}>{dataModal.address}</Text>
                 </View>
               </View>
@@ -165,7 +175,10 @@ export default function V_ListAppointmentScreen({ navigation }) {
                 <Text style={styles.label}>Tên thú cưng</Text>
                 <Text style={styles.content}>{dataModal.petName}</Text>
               </View>
-              <Image style={styles.petImg} source={require('../../assets/images/V_MyDieu-avatar.png')}></Image>
+              <Image
+                style={styles.petImg}
+                source={require("../../assets/images/V_MyDieu-avatar.png")}
+              ></Image>
             </View>
             <View style={[styles.card, styles.row]}>
               <View style={styles.info}>
@@ -198,18 +211,30 @@ export default function V_ListAppointmentScreen({ navigation }) {
               </View>
             </View>
 
-            {dataModal.status === 'Đã đặt' && <CancelBtn onPress={() => {
-              Alert.alert('Hủy lịch hẹn', 'Bạn chắc chắn muốn hủy lịch hẹn này?', [
-                {
-                  text: 'Đóng',
-                  onPress: () => console.log('Cancel Pressed'),
-                  style: 'cancel',
-                },
-                {text: 'OK', onPress: () => /* cap nhat lai status thanh da huy */ console.log('OK Pressed')},
-              ]);          
-            }}
-            />}
-
+            {dataModal.status === "Đã đặt" && (
+              <CancelBtn
+                onPress={() => {
+                  Alert.alert(
+                    "Hủy lịch hẹn",
+                    "Bạn chắc chắn muốn hủy lịch hẹn này?",
+                    [
+                      {
+                        text: "Đóng",
+                        onPress: () => console.log("Cancel Pressed"),
+                        style: "cancel",
+                      },
+                      {
+                        text: "OK",
+                        onPress: () =>
+                          /* cap nhat lai status thanh da huy */ console.log(
+                            "OK Pressed"
+                          ),
+                      },
+                    ]
+                  );
+                }}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -220,115 +245,128 @@ export default function V_ListAppointmentScreen({ navigation }) {
 // Appointment Card Element
 const AppointmentCard = (prop) => {
   return (
-    <TouchableOpacity
-      style={styles.appointmentCard}
-      onPress={prop.onPress}
-    >
+    <TouchableOpacity style={styles.appointmentCard} onPress={prop.onPress}>
       <View style={[styles.appointmentHeader, styles.row]}>
         <Text style={styles.appointmentNum}>{prop.id}</Text>
-        <Text style={[styles.status, { backgroundColor: prop.backgroundColor }]}>{prop.status}</Text>
+        <Text
+          style={[styles.status, { backgroundColor: prop.backgroundColor }]}
+        >
+          {prop.status}
+        </Text>
       </View>
 
       <View style={[styles.appointmentInfo, styles.row]}>
         <View>
-          <Image style={styles.clinicImg} source={require('../../assets/images/V_clinicAvatar2.png')}></Image>
+          <Image
+            style={styles.clinicImg}
+            source={require("../../assets/images/V_clinicAvatar2.png")}
+          ></Image>
         </View>
-        <View style={{ width: '100%' }}>
-          <Text style={styles.nameClinic}>{prop.name}</Text>
-          <Text style={styles.addressClinic}>{prop.address}</Text>
-          <Text style={styles.createDate}>Ngày đặt: {prop.createDate}</Text>
+        <View style={{ width: "100%" }}>
+          <Text style={styles.nameClinic}>{prop.clinicName}</Text>
+          <Text style={styles.addressClinic}>{prop.clinicAddress}</Text>
+          <View style={[styles.row, {marginBottom: "2%"}]}>
+            <Text style={styles.subLabel}>Thú cưng:</Text>
+            <Text style={styles.petName}>{prop.petName}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.subLabel}>Ngày đặt:</Text>
+            <Text style={styles.createdDate}>{prop.createdDate}</Text>
+          </View>
           <View style={[styles.dateTime, styles.row]}>
-            <Text style={styles.formatText}>Ngày hẹn: {prop.date}</Text>
-            <Text style={styles.formatText}>{prop.startTime} - {prop.endTime}</Text>
+            <View style={styles.row}>
+              <Text style={styles.subLabel}>Ngày hẹn:</Text>
+              <Text style={styles.scheduleText}>{prop.scheduleDate}</Text>
+            </View>
+            <Text style={styles.scheduleText}>
+              {prop.startTime}-{prop.endTime}
+            </Text>
           </View>
         </View>
       </View>
     </TouchableOpacity>
   );
-}
+};
 
 const CancelBtn = (prop) => {
   return (
-    <TouchableOpacity
-      style={styles.cancelBtn}
-      onPress={prop.onPress}>
+    <TouchableOpacity style={styles.cancelBtn} onPress={prop.onPress}>
       <Text style={styles.textCancelBtn}>Hủy lịch hẹn</Text>
     </TouchableOpacity>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    height: '100%',
-    backgroundColor: '#FFF6F6',
+    height: "100%",
+    backgroundColor: "#FFF6F6",
   },
   seperation: {
-    width: '100%',
+    width: "100%",
     height: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
 
   // -------------------------------------------------  body
   body: {
-    width: '100%',
+    width: "100%",
     flex: 1,
-    alignContent: 'space-between',
+    alignContent: "space-between",
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   heading: {
-    backgroundColor: '#E02D33',
+    backgroundColor: "#E02D33",
     paddingHorizontal: 40,
     paddingVertical: 6,
-    alignSelf: 'center',
+    alignSelf: "center",
     borderRadius: 32,
     margin: 12,
   },
   title: {
-    fontFamily: 'lexend-bold',
-    color: '#FFFFFF',
+    fontFamily: "lexend-bold",
+    color: "#FFFFFF",
     fontSize: 18,
   },
   listAppointment: {
-    width: '100%',
+    width: "100%",
     marginBottom: Dimensions.get("window").height * 0.1,
   },
   appointmentCard: {
-    width: '88%',
-    alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F5817E',
+    width: "88%",
+    alignSelf: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#F5817E",
     borderWidth: 1,
     borderRadius: 16,
     paddingBottom: 4,
     marginBottom: 12,
   },
   appointmentHeader: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   appointmentNum: {
-    width: '24%',
+    width: "24%",
     fontSize: 16,
-    fontFamily: 'lexend-bold',
-    textAlign: 'center',
-    color: '#A51A29',
+    fontFamily: "lexend-bold",
+    textAlign: "center",
+    color: "#A51A29",
     paddingHorizontal: 16,
     paddingVertical: 4,
-    backgroundColor: '#FEDBD0',
+    backgroundColor: "#FEDBD0",
     borderTopLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
   status: {
-    width: '20%',
-    paddingHorizontal: 8,
+    width: "20%",
     paddingVertical: 4,
-    textAlign: 'center',
-    color: '#FFFFFF',
+    textAlign: "center",
+    color: "#FFFFFF",
     fontSize: 13,
-    fontFamily: 'lexend-medium',
-    borderRadius: 8,
+    fontFamily: "lexend-medium",
+    borderRadius: 10,
     marginTop: 4,
     marginRight: 8,
   },
@@ -340,87 +378,105 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     borderWidth: 2,
-    borderColor: '#DCDCDC',
+    borderColor: "#DCDCDC",
     marginRight: 8,
   },
   nameClinic: {
-    maxWidth: '76%',
-    color: '#442C2E',
+    maxWidth: "76%",
+    color: "#442C2E",
     fontSize: 18,
-    marginBottom: '2%',
-    fontFamily: 'lexend-semibold',
+    marginBottom: "2%",
+    fontFamily: "lexend-semibold",
   },
   addressClinic: {
-    maxWidth: '78%',
+    maxWidth: "78%",
     fontSize: 14,
-    fontFamily: 'lexend-light',
+    fontFamily: "lexend-light",
   },
-  createDate: {
+  subLabel: {
     fontSize: 14,
-    lineHeight: 24,
-    fontFamily: 'lexend-light',
+    lineHeight: 20,
+    fontFamily: "lexend-light",
+    color: '#000000',
+  },
+  petName: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "lexend-regular",
+    color: "#442C2E",
+    marginLeft: '2.5%',
+  },
+  createdDate: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: "lexend-light",
+    color: "#677294",
+    marginLeft: '2%',
   },
   dateTime: {
-    width: '76%',
-    justifyContent: 'space-between',
+    width: "70%",
+    justifyContent: "space-between",
   },
-  formatText: {
+  scheduleText: {
     fontSize: 14,
-    fontFamily: 'lexend-light',
+    lineHeight: 20,
+    fontFamily: "lexend-light",
+    color: '#677294',
+    marginLeft: '4%',
   },
   addBtn: {
-    width: '12%',
-    height: '12%',
-    position: 'absolute',
-    right: 12,
+    width: "12%",
+    height: "12%",
+    position: "absolute",
+    right: 20,
     bottom: Dimensions.get("window").height * 0.1 + 8,
   },
   imgBtn: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
+    width: "100%",
+    height: "100%",
+    resizeMode: "contain",
   },
 
   // ==================================================== Info Modal
   modal: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    width: '91%',
+    width: "91%",
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderRadius: 8,
-    backgroundColor: '#FFF6F6',
+    backgroundColor: "#FFF6F6",
   },
   closeModal: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: -8,
     padding: 8,
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
   headingModal: {
-    color: '#A51A29',
+    color: "#A51A29",
     fontSize: 18,
-    fontFamily: 'lexend-semibold',
-    alignSelf: 'center',
-    marginVertical: '4%',
+    fontFamily: "lexend-semibold",
+    alignSelf: "center",
+    marginVertical: "4%",
   },
   clinic: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: '#f9bebf',
+    backgroundColor: "#f9bebf",
     borderRadius: 8,
   },
   clinicImgView: {
     elevation: 6,
 
     // add shadows for iOS only
-    shadowColor: 'black',
+    shadowColor: "black",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
 
@@ -435,33 +491,33 @@ const styles = StyleSheet.create({
     maxHeight: 66,
     borderRadius: 32,
     borderWidth: 1,
-    borderColor: '#FFFFFF',
-    resizeMode: 'contain',
-    alignSelf: 'flex-start',
+    borderColor: "#FFFFFF",
+    resizeMode: "contain",
+    alignSelf: "flex-start",
   },
   clinicInfo: {
-    width: '76%',
+    width: "76%",
     minHeight: 72,
     paddingVertical: 2,
     paddingLeft: 6,
     marginLeft: -8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   name: {
-    width: '92%',
-    color: '#39A3C0',
+    width: "92%",
+    color: "#39A3C0",
     fontSize: 16,
-    fontFamily: 'lexend-regular',
+    fontFamily: "lexend-regular",
   },
   branch: {
-    color: '#39A3C0',
+    color: "#39A3C0",
     fontSize: 15,
-    fontFamily: 'lexend-light',
+    fontFamily: "lexend-light",
   },
   address: {
-    width: '92%',
+    width: "92%",
     marginTop: 2,
   },
   iconAddress: {
@@ -474,66 +530,66 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   subHeading: {
-    color: '#333333',
+    color: "#333333",
     fontSize: 16,
-    fontFamily: 'lexend-medium',
+    fontFamily: "lexend-medium",
     marginTop: 16,
   },
   card: {
-    width: '100%',
+    width: "100%",
     height: 60,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
     marginTop: 8,
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
     borderWidth: 0.5,
-    borderColor: '#f9bebf',
+    borderColor: "#f9bebf",
   },
   desCard: {
-    width: '100%',
+    width: "100%",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 12,
     marginTop: 8,
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
     borderWidth: 0.5,
-    borderColor: '#f9bebf',
+    borderColor: "#f9bebf",
   },
   info: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   label: {
-    color: '#A51A29',
+    color: "#A51A29",
     fontSize: 14,
-    fontFamily: 'lexend-medium',
+    fontFamily: "lexend-medium",
   },
   content: {
     fontSize: 14,
-    fontFamily: 'lexend-light',
+    fontFamily: "lexend-light",
   },
   petImg: {
     width: 48,
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#f9bebf',
-    alignSelf: 'center',
+    borderColor: "#f9bebf",
+    alignSelf: "center",
   },
   cancelBtn: {
-    width: '72%',
-    alignSelf: 'center',
-    alignItems: 'center',
+    width: "72%",
+    alignSelf: "center",
+    alignItems: "center",
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#A51A29',
-    marginTop: '4%',
+    backgroundColor: "#A51A29",
+    marginTop: "4%",
   },
   textCancelBtn: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontFamily: 'lexend-medium',
-  }
+    fontFamily: "lexend-medium",
+  },
 });

@@ -10,7 +10,7 @@ import {
 import React, { useEffect, useState, useContext } from "react";
 import CalendarStrip from "react-native-calendar-strip";
 import { database } from "../../../firebase";
-import { ref, get, push, update } from "firebase/database";
+import { ref, get, set, update } from "firebase/database";
 import { UserContext } from "../../../UserIdContext";
 import moment from "moment";
 import TimeCard from "./TimeCard";
@@ -85,18 +85,29 @@ export default function V_BookingVetScreen({ navigation, route }) {
       status: "Đã đặt",
       description: "",
     };
-
+    let newKeyNode = 1;
     let currentDate = moment(selectedDate).format("DD-MM-YYYY");
-    let appointmentRef = ref(database, `appointment/${clinicId}/${myUserId}`);
-    push(appointmentRef, newRecord)
+
+    let appointmentRef = ref(database, `appointment/${myUserId}`);
+    await get(appointmentRef)
+      .then((snapshot) => {
+        if (snapshot.hasChildren()) {
+          newKeyNode = Object.keys(snapshot.val()).length + 1;
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
+    let addApptRef = ref(database, `appointment/${myUserId}/${newKeyNode}`);
+    set(addApptRef, newRecord)
       .then(() => {
         console.log("New appointment added successfully!");
         let scheduleRef = ref(
           database,
           `clinicSchedule/${clinicId}/${currentDate}/${timeId}`
         );
-        get(scheduleRef)
-        .then (scheduleSnapshot => {
+        get(scheduleRef).then((scheduleSnapshot) => {
           bookedSlot = scheduleSnapshot.val().booked;
           let bookedUpdate = {
             booked: parseInt(bookedSlot, 10) + 1,
@@ -257,7 +268,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   wrapping: {

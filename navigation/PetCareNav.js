@@ -106,12 +106,11 @@ const VeterinarianStack = createStackNavigator();
 function VeterinarianStackNavigator() {
     return (
         <VeterinarianStack.Navigator screenOptions={{ headerShown: false }}>
-            <VeterinarianStack.Screen name="V_Origin" component={V_OriginScreen} />
+            <VeterinarianStack.Screen name="V_ListAppointment" component={V_ListAppointmentScreen} />
             <VeterinarianStack.Screen name="V_Location" component={V_LocationScreen} />
             <VeterinarianStack.Screen name="V_ListVetClinic" component={V_ListVetClinicScreen} />
             <VeterinarianStack.Screen name="V_BookingVet" component={V_BookingVetScreen} />
             <VeterinarianStack.Screen name="V_BookingSuccess" component={V_BookingSuccessScreen} />
-            <VeterinarianStack.Screen name="V_ListAppointment" component={V_ListAppointmentScreen} />
         </VeterinarianStack.Navigator>
     );
 }
