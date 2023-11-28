@@ -156,14 +156,18 @@ export default function V_ListAppointmentScreen({ navigation }) {
                 ></Image>
               </View>
               <View style={styles.clinicInfo}>
-                <Text style={styles.name}>{dataModal.name}</Text>
-                {/* <Text style={styles.branch}>Cơ sở 1</Text> */}
+                <Text style={styles.name}>{dataModal.clinicName}</Text>
+                <Text style={styles.branch}>
+                  Cơ sở {dataModal.clinicAgency}
+                </Text>
                 <View style={[styles.address, styles.row]}>
                   <Image
                     style={styles.iconAddress}
                     source={require("../../assets/icons/V_clinic-location.png")}
                   ></Image>
-                  <Text style={styles.textAddress}>{dataModal.address}</Text>
+                  <Text style={styles.textAddress}>
+                    {dataModal.clinicAddress}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -177,19 +181,19 @@ export default function V_ListAppointmentScreen({ navigation }) {
               </View>
               <Image
                 style={styles.petImg}
-                source={require("../../assets/images/V_MyDieu-avatar.png")}
+                source={{ uri: dataModal.petAvatar }}
               ></Image>
             </View>
             <View style={[styles.card, styles.row]}>
               <View style={styles.info}>
                 <Text style={styles.label}>Ngày đặt</Text>
-                <Text style={styles.content}>{dataModal.createDate}</Text>
+                <Text style={styles.content}>{dataModal.createdDate}</Text>
               </View>
             </View>
             <View style={[styles.card, styles.row]}>
               <View style={styles.info}>
                 <Text style={styles.label}>Ngày hẹn</Text>
-                <Text style={styles.content}>{dataModal.date}</Text>
+                <Text style={styles.content}>{dataModal.scheduleDate}</Text>
               </View>
             </View>
             <View style={[styles.card, styles.row]}>
@@ -220,15 +224,11 @@ export default function V_ListAppointmentScreen({ navigation }) {
                     [
                       {
                         text: "Đóng",
-                        onPress: () => console.log("Cancel Pressed"),
-                        style: "cancel",
+                        onPress: () => {},
                       },
                       {
-                        text: "OK",
-                        onPress: () =>
-                          /* cap nhat lai status thanh da huy */ console.log(
-                            "OK Pressed"
-                          ),
+                        text: "Xác nhận",
+                        onPress: () => {},
                       },
                     ]
                   );
@@ -265,7 +265,7 @@ const AppointmentCard = (prop) => {
         <View style={{ width: "100%" }}>
           <Text style={styles.nameClinic}>{prop.clinicName}</Text>
           <Text style={styles.addressClinic}>{prop.clinicAddress}</Text>
-          <View style={[styles.row, {marginBottom: "2%"}]}>
+          <View style={[styles.row, { marginBottom: "2%" }]}>
             <Text style={styles.subLabel}>Thú cưng:</Text>
             <Text style={styles.petName}>{prop.petName}</Text>
           </View>
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  // -------------------------------------------------  body
+  // body
   body: {
     width: "100%",
     flex: 1,
@@ -397,21 +397,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "lexend-light",
-    color: '#000000',
+    color: "#000000",
   },
   petName: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "lexend-regular",
     color: "#442C2E",
-    marginLeft: '2.5%',
+    marginLeft: "2.5%",
   },
   createdDate: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "lexend-light",
     color: "#677294",
-    marginLeft: '2%',
+    marginLeft: "2%",
   },
   dateTime: {
     width: "70%",
@@ -421,8 +421,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: "lexend-light",
-    color: '#677294',
-    marginLeft: '4%',
+    color: "#677294",
+    marginLeft: "4%",
   },
   addBtn: {
     width: "12%",
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
 
-  // ==================================================== Info Modal
+  // Info Modal
   modal: {
     flex: 1,
     justifyContent: "center",
@@ -467,10 +467,10 @@ const styles = StyleSheet.create({
   },
   clinic: {
     width: "100%",
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     backgroundColor: "#f9bebf",
-    borderRadius: 8,
+    borderRadius: 16,
   },
   clinicImgView: {
     elevation: 6,
@@ -496,10 +496,10 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   clinicInfo: {
-    width: "76%",
+    width: "77%",
     minHeight: 72,
-    paddingVertical: 2,
-    paddingLeft: 6,
+    paddingVertical: "1%",
+    paddingLeft: 10,
     marginLeft: -8,
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
@@ -509,16 +509,17 @@ const styles = StyleSheet.create({
     width: "92%",
     color: "#39A3C0",
     fontSize: 16,
-    fontFamily: "lexend-regular",
+    fontFamily: "lexend-light",
   },
   branch: {
     color: "#39A3C0",
-    fontSize: 15,
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: "lexend-light",
   },
   address: {
     width: "92%",
-    marginTop: 2,
+    marginVertical: "2%",
   },
   iconAddress: {
     width: 18,
@@ -526,8 +527,9 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   textAddress: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: "lexend-light",
   },
   subHeading: {
     color: "#333333",
@@ -562,34 +564,37 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   label: {
-    color: "#A51A29",
     fontSize: 14,
-    fontFamily: "lexend-medium",
+    color: "#A51A29",
+    fontFamily: "lexend-regular",
   },
   content: {
     fontSize: 14,
     fontFamily: "lexend-light",
   },
   petImg: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: "#f9bebf",
     alignSelf: "center",
   },
   cancelBtn: {
-    width: "72%",
-    alignSelf: "center",
+    width: "50%",
+    alignSelf: "flex-end",
     alignItems: "center",
     paddingVertical: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F5817E",
     backgroundColor: "#A51A29",
-    marginTop: "4%",
+    marginTop: "5%",
+    marginBottom: "1%",
   },
   textCancelBtn: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "lexend-medium",
+    fontSize: 13,
+    fontFamily: "lexend-semibold",
   },
 });
