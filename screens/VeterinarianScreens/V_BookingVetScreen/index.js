@@ -34,40 +34,50 @@ export default function V_BookingVetScreen({ navigation, route }) {
 
   // load data thoi gian kham va list thu cung cua user
   const fetchDataFromFirebase = async () => {
-    // get time list according to date
-    let currentDate = moment(selectedDate).format("DD-MM-YYYY");
-    let scheduleRef = ref(
-      database,
-      `clinicSchedule/${clinicId}/${currentDate}`
-    );
-    let timeData = [];
-    let scheduleSnapshot = await get(scheduleRef);
-    scheduleSnapshot.forEach((childSnapshot) => {
-      let scheduleNode = childSnapshot.val();
-      timeData.push({
-        id: childSnapshot.key,
-        startTime: scheduleNode.startTime,
-        endTime: scheduleNode.endTime,
-        slot: scheduleNode.slot,
-        booked: scheduleNode.booked,
-      });
-    });
-    setTimeList(timeData);
+    // set time of today start at 00:00:00 UTC
+    let today = moment().utcOffset(0, true).startOf("day");
 
-    // get pet list of user
-    let petRef = ref(database, `pet/${myUserId}`);
-    let petSnapshot = await get(petRef);
-    let petData = petSnapshot.val();
-    let petArr = [];
-    Object.keys(petData).forEach((key) => {
-      let item = petData[key];
-      petArr.push({
-        id: key, // Lay key cua nut du lieu lam ID
-        name: item.name,
-        avatar: item.avatar,
+    if (moment(selectedDate).isSameOrAfter(moment(today))) {
+      let currentDate = moment(selectedDate).format("DD-MM-YYYY");
+      let scheduleRef = ref(
+        database,
+        `clinicSchedule/${clinicId}/${currentDate}`
+      );
+      let timeData = [];
+      let scheduleSnapshot = await get(scheduleRef);
+
+      scheduleSnapshot.forEach((childSnapshot) => {
+        let scheduleNode = childSnapshot.val();
+        timeData.push({
+          id: childSnapshot.key,
+          startTime: scheduleNode.startTime,
+          endTime: scheduleNode.endTime,
+          slot: scheduleNode.slot,
+          booked: scheduleNode.booked,
+        });
       });
-    });
-    setPetList(petArr);
+      setTimeList(timeData);
+
+      // get pet list of user
+      if (timeData.length > 0) {
+        let petRef = ref(database, `pet/${myUserId}`);
+        let petSnapshot = await get(petRef);
+        let petData = petSnapshot.val();
+        let petArr = [];
+        Object.keys(petData).forEach((key) => {
+          let item = petData[key];
+          petArr.push({
+            id: key, // Lay key cua nut du lieu lam ID
+            name: item.name,
+            avatar: item.avatar,
+          });
+        });
+        setPetList(petArr);
+      }
+    } else {
+      setTimeList([]);
+      setPetList([]);
+    }
   };
 
   // them lich hen vao database
@@ -200,7 +210,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
         {/* pickup time */}
         <Text style={[styles.subTitle, styles.marginLeft6]}>Thời gian</Text>
         <ScrollView horizontal={true} style={styles.listTimeOptions}>
-          {timeList &&
+          {timeList.length > 0 ? (
             timeList.map((item) => {
               const bgrColor = item.id === timeId ? "#b0dbe2" : "#f9bebf";
               const color = item.id === timeId ? "#4d5f62" : "#ffffff";
@@ -214,7 +224,12 @@ export default function V_BookingVetScreen({ navigation, route }) {
                   textColor={color}
                 />
               );
-            })}
+            })
+          ) : (
+            <Text style={styles.noDataText}>
+              Không có giờ hẹn nào vào ngày này
+            </Text>
+          )}
         </ScrollView>
         {/* pickup pet */}
         <Text style={[styles.subTitle, styles.marginLeft6]}>Thú cưng</Text>
@@ -408,6 +423,12 @@ const styles = StyleSheet.create({
     fontFamily: "lexend-semibold",
     marginTop: "4%",
     marginBottom: "2%",
+  },
+  noDataText: {
+    fontSize: 13,
+    lineHeight: 28,
+    fontFamily: "lexend-regular",
+    alignSelf: "center",
   },
   //pet pickup
   listPetOptions: {

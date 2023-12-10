@@ -49,7 +49,9 @@ export default function V_ListAppointmentScreen({ navigation }) {
               ).format("DD-MM-YYYY"),
             });
           });
-          setAppointmentList(appointmentData);
+
+          let reverseApmtData = appointmentData.reverse();  // Hien thi lich hen theo thoi gian dat gan nhat
+          setAppointmentList(reverseApmtData);
           setLoading(false);
         });
       } catch (error) {
