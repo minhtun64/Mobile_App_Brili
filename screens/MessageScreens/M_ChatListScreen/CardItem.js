@@ -89,9 +89,10 @@ const styles = StyleSheet.create({
     fontFamily: "lexend-light",
   },
   timestamp: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontFamily: "lexend-light",
     marginTop: 2,
+    color: "#8D8D8D",
   },
   messageText: {
     fontSize: 14,

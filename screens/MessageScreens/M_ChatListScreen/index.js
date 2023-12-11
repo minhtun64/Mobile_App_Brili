@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useContext } from "react";
-import { StyleSheet, Text, View, FlatList, Image } from "react-native";
+import { StyleSheet, View, FlatList } from "react-native";
 import { database } from "../../../firebase";
-import { ref, get } from "firebase/database";
+import { ref, get, onValue } from "firebase/database";
 
 import { UserContext } from "../../../UserIdContext";
 import ChatListHeader from "./ChatListHeader";
 import CardItem from "./CardItem";
 import LoadingView from "../../../components/LoadingView";
+import { formatTime } from "../../../components/TimeMessagesUtils";
 
 function M_ChatListScreen({ navigation }) {
   let myUserId = useContext(UserContext).userId;
@@ -19,50 +20,52 @@ function M_ChatListScreen({ navigation }) {
 
   const fetchData = async () => {
     try {
-      let itemList = [];
-      let userIdList = [];
-
       let chatListRef = ref(database, `chatList`);
-      const snapshot = await get(chatListRef);
-      snapshot.forEach((childSnapshot) => {
-        let nodeValue = childSnapshot.val();
-        let participants = nodeValue.participants;
-        let messages = Object.values(nodeValue.messages);
+      onValue(chatListRef, async (snapshot) => {
+        let itemList = [];
+        let userIdList = [];
 
-        if (Object.values(participants).includes(myUserId)) {
-          let otherUserId =
-            myUserId !== participants.user1
-              ? participants.user1
-              : participants.user2;
+        snapshot.forEach((childSnapshot) => {
+          let nodeValue = childSnapshot.val();
+          let participants = nodeValue.participants;
 
-          // Lay tin nhan moi nhat cuoi cung
-          let lastMessageKey = Object.keys(messages).pop();
-          let lastMessage = messages[lastMessageKey];
+          if (Object.values(participants).includes(myUserId)) {
+            let otherUserId =
+              myUserId !== participants.user1
+                ? participants.user1
+                : participants.user2;
+            let messages = Object.values(nodeValue.messages);
 
-          itemList.push({
-            idChatBox: childSnapshot.key,
-            ...lastMessage,
-          });
+            // Lay tin nhan moi nhat cuoi cung
+            let lastMessageKey = Object.keys(messages).pop();
+            let lastMessage = messages[lastMessageKey];
 
-          userIdList.push(otherUserId);
+            itemList.push({
+              idChatBox: childSnapshot.key,
+              ...lastMessage,
+              timestamp: formatTime(lastMessage.timestamp),
+            });
+
+            userIdList.push(otherUserId);
+          }
+        });
+
+        let arrLength = userIdList.length;
+        for (let i = 0; i < arrLength; i++) {
+          let userId = userIdList[i];
+          let userRef = ref(database, `user/${userId}`);
+          let userSnapshot = await get(userRef);
+          let userData = userSnapshot.val();
+
+          // thêm thuộc tính vào từng phần tử trong itemList
+          itemList[i].userId = userId;
+          itemList[i].name = userData.name;
+          itemList[i].avatar = userData.avatar;
         }
+
+        setMessages(itemList);
+        setLoading(false);
       });
-
-      let arrLength = userIdList.length;
-      for (let i = 0; i < arrLength; i++) {
-        let userId = userIdList[i];
-        let userRef = ref(database, `user/${userId}`);
-        let userSnapshot = await get(userRef);
-        let userData = userSnapshot.val();
-
-        // thêm thuộc tính vào từng phần tử trong itemList
-        itemList[i].userId = userId;
-        itemList[i].name = userData.name;
-        itemList[i].avatar = userData.avatar;
-      }
-
-      setMessages(itemList);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
     }

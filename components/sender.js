@@ -1,20 +1,16 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import moment from "moment";
 
 const Sender = (props) => {
-  const content = props.message[0];
-  let timestamp = props.message[1];
-
-  const time = new Date(timestamp);
-  timestamp = `${time.getHours()}:${time
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
+  let [content, timestamp, userAvatar] = props.message;
+  let formattedTime = moment(timestamp, "DD-MM-YYYY hh:mm:ss").format("hh:mm");
 
   return (
     <View style={styles.container}>
       <View style={styles.textView}>
         <Text style={styles.content}>{content}</Text>
-        <Text style={styles.timestamp}>{timestamp}</Text>
+        <Text style={styles.timestamp}>{formattedTime}</Text>
       </View>
     </View>
   );
@@ -52,4 +48,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Sender;
+export default React.memo(Sender);
