@@ -22,6 +22,7 @@ export default function V_ListAppointmentScreen({ navigation }) {
   const [appointmentList, setAppointmentList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [dataModal, setDataModal] = useState({});
+  
   const [layout, setLayout] = useState({ width: 0, height: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +51,7 @@ export default function V_ListAppointmentScreen({ navigation }) {
             });
           });
 
-          let reverseApmtData = appointmentData.reverse();  // Hien thi lich hen theo thoi gian dat gan nhat
+          let reverseApmtData = appointmentData.reverse(); // Hien thi lich hen theo thoi gian dat gan nhat
           setAppointmentList(reverseApmtData);
           setLoading(false);
         });
@@ -154,7 +155,7 @@ export default function V_ListAppointmentScreen({ navigation }) {
               <View style={styles.clinicImgView}>
                 <Image
                   style={styles.clinicImgModal}
-                  source={require("../../assets/images/V_clinicAvatar2.png")}
+                  source={{ uri: dataModal.clinicAvatar }}
                 ></Image>
               </View>
               <View style={styles.clinicInfo}>
@@ -261,7 +262,7 @@ const AppointmentCard = (prop) => {
         <View>
           <Image
             style={styles.clinicImg}
-            source={require("../../assets/images/V_clinicAvatar2.png")}
+            source={{ uri: prop.clinicAvatar }}
           ></Image>
         </View>
         <View style={{ width: "100%" }}>
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
   },
   clinicImgModal: {
     width: 66,
-    maxHeight: 66,
+    height: 66,
     borderRadius: 32,
     borderWidth: 1,
     borderColor: "#FFFFFF",

@@ -19,15 +19,14 @@ const Receiver = (props) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
     flexDirection: "row",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   textView: {
     backgroundColor: "#F3F3F3",
     justifyContent: "center",
-    paddingTop: "1.5%",
-    paddingBottom: "0.8%",
+    paddingTop: "1.8%",
+    paddingBottom: "1.2%",
     paddingHorizontal: "3%",
     marginLeft: "2%",
     borderBottomLeftRadius: 4,
@@ -46,13 +45,13 @@ const styles = StyleSheet.create({
     width: "100%",
     fontSize: 15,
     textAlign: "left",
-    marginBottom: "6%",
   },
   timestamp: {
     width: "100%",
     textAlign: "left",
     fontSize: 10,
     color: "#969191",
+    marginTop: 6,
   },
 });
 

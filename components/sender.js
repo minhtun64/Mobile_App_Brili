@@ -19,14 +19,13 @@ const Sender = (props) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row-reverse",
-    width: "100%",
-    marginTop: 4,
+    marginTop: 6,
   },
   textView: {
     backgroundColor: "rgba(253, 218, 212, 0.5)",
     justifyContent: "center",
-    paddingTop: "1.5%",
-    paddingBottom: "0.8%",
+    paddingTop: "1.8%",
+    paddingBottom: "1.2%",
     paddingHorizontal: "3%",
     marginRight: "4%",
     borderBottomRightRadius: 4,
@@ -38,13 +37,13 @@ const styles = StyleSheet.create({
     width: "100%",
     fontSize: 15,
     textAlign: "right",
-    marginBottom: "6%",
   },
   timestamp: {
     width: "100%",
     textAlign: "right",
     fontSize: 10.5,
     color: "#969191",
+    marginTop: 6,
   },
 });
 

@@ -73,6 +73,8 @@ export default function V_BookingVetScreen({ navigation, route }) {
           });
         });
         setPetList(petArr);
+      } else {
+        setPetList([]);
       }
     } else {
       setTimeList([]);
@@ -86,6 +88,7 @@ export default function V_BookingVetScreen({ navigation, route }) {
       clinicName: clinicName,
       clinicAddress: clinicAddress,
       clinicAgency: clinicAgency,
+      clinicAvatar: clinicAvatar,
       petName: petList.find((element) => element.id === petId).name,
       petAvatar: petList.find((element) => element.id === petId).avatar,
       createdDate: moment().format("DD-MM-YYYY HH:mm:ss"),
