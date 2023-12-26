@@ -218,10 +218,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: width * 0.8,
-    height: height * 0.8,
+    height: height * 0.4,
     resizeMode: "contain",
     position: "absolute",
-    top: -height * 0.2,
+    top: height * 0.001,
     zIndex: 1,
   },
 

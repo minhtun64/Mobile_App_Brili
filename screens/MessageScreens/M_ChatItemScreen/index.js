@@ -57,7 +57,7 @@ export default function M_ChatItemScreen({ navigation, route }) {
           keyExtractor={(item) => item.idMessage}
           renderItem={({ item }) =>
             item.sender === myUserId ? (
-              <Sender message={[item.content, item.timestamp, userAvatar]} />
+              <Sender message={[item.content, item.timestamp, userAvatar]} chatboxId={idChatBox} messageId={item.idMessage} />
             ) : (
               <Receiver message={[item.content, item.timestamp, userAvatar]} />
             )

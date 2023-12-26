@@ -4,7 +4,7 @@ import moment from "moment";
 
 const Receiver = (props) => {
   let [content, timestamp, userAvatar] = props.message;
-  let formattedTime = moment(timestamp, "DD-MM-YYYY hh:mm:ss").format("hh:mm");
+  let formattedTime = moment(timestamp, "DD-MM-YYYY HH:mm:ss").format("HH:mm");
 
   return (
     <View style={styles.container}>
